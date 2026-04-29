@@ -243,7 +243,10 @@ let activeSheet=parseInt(localStorage.getItem("ffc_activeSheetIdx")||"0");
 <div id="sheet-switcher" style="display:none"></div>
 <div class="nav-bar">
   <button onclick="go(-1)" id="nav-prev" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0;transition:all .15s" ontouchend="event.preventDefault();go(-1)">‹</button>
-  <span id="nav-count" class="nav-count">— / —</span>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+    <span id="nav-count" class="nav-count">— / —</span>
+    <button id="filter-clear-btn" onclick="clearPipelineFilter()" style="display:none;font-size:10px;font-weight:700;color:#a78bfa;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:10px;padding:2px 8px;touch-action:manipulation">✕ <span id="filter-label-text"></span></button>
+  </div>
   <button onclick="go(1)" id="nav-next" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0;transition:all .15s" ontouchend="event.preventDefault();go(1)">›</button>
 </div>
 <button id="prev-btn" class="desk-nav-btn left" onclick="go(-1)" title="Previous lead">‹</button>
@@ -362,9 +365,11 @@ let activeSheet=parseInt(localStorage.getItem("ffc_activeSheetIdx")||"0");
     <div style="overflow-y:auto;padding:12px 14px 24px;-webkit-overflow-scrolling:touch">
       <div id="sms-template-list"></div>
       <div style="margin-top:14px;border-top:1px solid rgba(45,37,80,.5);padding-top:14px">
-        <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:8px">Custom Message</div>
-        <textarea id="sms-custom-body" rows="4" placeholder="Type a custom message…" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(45,37,80,.8);border-radius:12px;color:#fff;padding:12px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;line-height:1.5"></textarea>
-        <button onclick="sendCustomSMS()" style="width:100%;margin-top:8px;padding:13px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.3),rgba(124,58,237,.15));border:1px solid rgba(124,58,237,.4);color:#a78bfa;font-size:14px;font-weight:800;touch-action:manipulation">Send Custom →</button>
+        <button onclick="generateAISMS(${ri})" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(201,162,39,.15));border:1px solid rgba(124,58,237,.35);color:#a78bfa;font-size:14px;font-weight:800;touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:8px" id="ai-sms-btn">✨ Write message with AI</button>
+        <div id="ai-sms-result" style="display:none;margin-top:10px">
+          <textarea id="ai-sms-ta" rows="5" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(124,58,237,.3);border-radius:12px;color:#fff;padding:12px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;line-height:1.5"></textarea>
+          <button onclick="sendAISMS(${ri})" style="width:100%;margin-top:8px;padding:12px;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#c9a227);border:none;color:#fff;font-size:14px;font-weight:800;touch-action:manipulation">Send →</button>
+        </div>
       </div>
     </div>
   </div>
@@ -628,7 +633,14 @@ function getNoteBlocksValue(){return[...$("note-blocks").querySelectorAll(".note
 
 function ini(n){if(!n)return"??";const w=n.trim().split(/\s+/);return(w[0][0]+(w[1]?w[1][0]:"")).toUpperCase();}
 
-function jumpTo(ri){idx=ri;saveC();closeAll();renderCard();window.scrollTo({top:0,behavior:"instant"});}
+function jumpTo(ri){
+  idx=ri;saveC();closeAll();
+  // If a status filter is active, set pipeline to filtered view so swipes stay within it
+  if(activeStatusFilter&&activeStatusFilter!=='all'){
+    pipeline='filtered';
+  }
+  renderAll();window.scrollTo({top:0,behavior:"instant"});
+}
 
 function loadC(){try{const d=localStorage.getItem(currentCache()),i=localStorage.getItem(currentIdxKey());if(d){contacts=JSON.parse(d);idx=Math.min(parseInt(i)||0,contacts.length-1);return true;}}catch{}return false;}
 
@@ -748,24 +760,49 @@ function openAll(){
 function openCallbackPicker(row){
   const ov=$("cb-ov");
   const stored=localStorage.getItem(CB_KEY(row));const cur=stored?JSON.parse(stored):null;
-  const opts=[{l:"15 min",ms:900000},{l:"30 min",ms:1800000},{l:"1 hour",ms:3600000},{l:"2 hours",ms:7200000},{l:"3 hours",ms:10800000},{l:"4 hours",ms:14400000},{l:"Tomorrow",ms:86400000},{l:"2 days",ms:172800000},{l:"Next week",ms:604800000}];
-  ov.innerHTML=`<div style="width:100%;background:linear-gradient(180deg,#1a1040,#130e2e);border-radius:24px 24px 0 0;border-top:1px solid rgba(124,58,237,.25);padding:0 0 50px;max-height:85vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.16,1,.3,1) both">
+  const now=new Date();
+  // Default specific-time input to next round hour
+  const nextHour=new Date(now);nextHour.setMinutes(0,0,0);nextHour.setHours(nextHour.getHours()+1);
+  const dtDefault=nextHour.toISOString().slice(0,16);
+  const opts=[
+    {l:"15 min",ms:900000},{l:"30 min",ms:1800000},{l:"1 hour",ms:3600000},
+    {l:"2 hours",ms:7200000},{l:"3 hours",ms:10800000},{l:"4 hours",ms:14400000},
+    {l:"Tomorrow",ms:86400000},{l:"2 days",ms:172800000},{l:"Next week",ms:604800000},
+    {l:"2 weeks",ms:1209600000},{l:"Next month",ms:2592000000}
+  ];
+  ov.innerHTML=`<div style="width:100%;background:linear-gradient(180deg,#1a1040,#130e2e);border-radius:24px 24px 0 0;border-top:1px solid rgba(124,58,237,.25);padding:0 0 50px;max-height:88vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.16,1,.3,1) both">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 12px;border-bottom:1px solid rgba(45,37,80,.5)">
-      <div><div style="font-size:18px;font-weight:900;color:#fff">Set Wait Timer</div><div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px">Sets WAIT pill with live countdown on card</div></div>
+      <div><div style="font-size:18px;font-weight:900;color:#fff">⏱ Set Wait Timer</div><div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px">Lead moves to Wait pipeline until timer expires</div></div>
       <button onclick="$('cb-ov').style.display='none'" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <div style="padding:16px 16px 0">
-      <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:6px">Note / Label</div>
-      <input id="cb-label" value="${cur?.label||""}" placeholder="e.g. call back, follow up, send docs…" style="width:100%;padding:13px 14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:12px;color:var(--text);font-size:14px;box-sizing:border-box;margin-bottom:16px" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='rgba(45,37,80,.8)'"/>
-      <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:8px">Countdown from now</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:6px">Note (reason for waiting)</div>
+      <input id="cb-label" value="${cur?.label||""}" placeholder="e.g. call back at 5, send docs, follow up…" style="width:100%;padding:13px 14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:12px;color:var(--text);font-size:14px;box-sizing:border-box;margin-bottom:16px" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='rgba(45,37,80,.8)'"/>
+
+      <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:8px">Quick select</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
         ${opts.map(o=>{const sel=cur&&cur.ms===o.ms;return`<button onclick="setCb(${row},${o.ms})" style="padding:13px;border-radius:12px;font-size:14px;font-weight:700;background:${sel?"linear-gradient(135deg,#7c3aed,#c9a227)":"rgba(255,255,255,.05)"};border:1.5px solid ${sel?"transparent":"rgba(45,37,80,.8)"};color:${sel?"#fff":"rgba(255,255,255,.8)"};touch-action:manipulation">${sel?"✓ ":""}${o.l}</button>`;}).join("")}
       </div>
-      ${cur?`<button onclick="clearCb(${row});$('cb-ov').style.display='none'" style="width:100%;margin-top:6px;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">Remove timer</button>`:""}
+
+      <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:8px">Specific time</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input type="datetime-local" id="cb-datetime" value="${dtDefault}" style="flex:1;padding:12px 14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:12px;color:var(--text);font-size:14px;box-sizing:border-box;color-scheme:dark" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='rgba(45,37,80,.8)'"/>
+        <button onclick="setCustomTime(${row})" style="padding:12px 16px;border-radius:12px;background:rgba(124,58,237,.2);border:1.5px solid rgba(124,58,237,.4);color:#a78bfa;font-size:14px;font-weight:700;touch-action:manipulation;white-space:nowrap">Set time</button>
+      </div>
+
+      ${cur?`<button onclick="clearCb(${row});$('cb-ov').style.display='none'" style="width:100%;margin-top:6px;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove timer</button>`:""}
       <button onclick="$('cb-ov').style.display='none'" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;border:1.5px solid rgba(45,37,80,.8);color:var(--sub);font-size:14px;font-weight:600">Cancel</button>
     </div>
   </div>`;
   ov.style.display="flex";
+}
+
+function setCustomTime(row){
+  const dtEl=$("cb-datetime");
+  if(!dtEl||!dtEl.value){toast("Pick a date and time first");return;}
+  const due=new Date(dtEl.value).getTime();
+  if(!due||due<=Date.now()){toast("Please pick a future time");return;}
+  setCb(row,0,due);
 }
 
 function openEdit(ri){
@@ -1177,14 +1214,12 @@ function saveInfoEdit(){
   $("info-edit-save-btn").textContent="Saved ✓";showUndo("Info saved");setTimeout(()=>{closeInfoEdit();renderCard();},500);
 }
 
-function setCb(row,ms){
-  // Blur any focused input first — prevents stale blur handlers firing on wrong contact
+function setCb(row,ms,specificTime){
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
   const labelEl=$("cb-label"),label=labelEl?labelEl.value.trim()||"Wait":"Wait";
-  const due=Date.now()+ms;
-  const data={due,label,ms};
+  const due=specificTime||Date.now()+ms;
+  const data={due,label,ms:ms||0};
   localStorage.setItem(CB_KEY(row),JSON.stringify(data));
-  // Write to col K in a clean, human readable format
   const dueDate=new Date(due);
   const dueStr=dueDate.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})
     +" at "+dueDate.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
@@ -1194,7 +1229,14 @@ function setCb(row,ms){
   const s=currentSheet();
   fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
     body:JSON.stringify({action:"setWait",sheet:s.tab,row,label,dueISO:dueDate.toISOString(),dueStr,waitStr})});
-  $("cb-ov").style.display="none";renderCard();startTick();toast(`⏱ ${label} — timer started`);
+  $("cb-ov").style.display="none";
+  // Stay on next lead — don't jump to card 1
+  const pl=getPipeline();
+  const ci=pl.findIndex(function(ct){return ct===contacts[idx]||ct.row===row;});
+  if(ci>=0&&ci<pl.length-1){
+    idx=contacts.indexOf(pl[ci+1]);saveC();
+  }
+  renderAll();startTick();toast(`⏱ ${label} — timer set`);
 }
 
 function showUndo(msg){const b=$("undo-bar");$("undo-msg").textContent=msg;b.classList.add("show");setTimeout(()=>b.classList.remove("show"),8000);}
@@ -1669,7 +1711,20 @@ function getPipeline(){
       return da-db;
     });
   }
+  if(pipeline==='filtered'&&activeStatusFilter&&activeStatusFilter!=='all'){
+    return contacts.filter(function(ct){
+      if(isWaiting(ct))return false;
+      const label=(ct.leadStatus||"").replace(/^[\d.]+\.?\s*/,"").trim();
+      return label===activeStatusFilter;
+    });
+  }
   return contacts.filter(function(ct){return !isWaiting(ct);});
+}
+
+function clearPipelineFilter(){
+  pipeline='active';activeStatusFilter='all';
+  const btn=$("filter-clear-btn");if(btn)btn.style.display="none";
+  renderAll();toast("Filter cleared");
 }
 
 function switchPipeline(p){
@@ -1726,6 +1781,16 @@ function updateWaitBadge(){
   if(navPrev){navPrev.style.opacity=pos<=1?".25":"1";navPrev.style.pointerEvents=pos<=1?"none":"auto";}
   if(navNext){navNext.style.opacity=(pos>=pl.length||!pl.length)?".25":"1";navNext.style.pointerEvents=(pos>=pl.length||!pl.length)?"none":"auto";}
   const fc=$("float-nav-count");if(fc)fc.textContent=(pos||1)+" of "+pl.length;
+  // Show/hide filter indicator
+  const filterBtn=$("filter-clear-btn"),filterLbl=$("filter-label-text");
+  if(filterBtn){
+    if(pipeline==='filtered'&&activeStatusFilter&&activeStatusFilter!=='all'){
+      filterBtn.style.display="inline-flex";
+      if(filterLbl)filterLbl.textContent=activeStatusFilter;
+    } else {
+      filterBtn.style.display="none";
+    }
+  }
 }
 
 // ── TOPBAR ──────────────────────────────────────────────────────────────────
@@ -2014,8 +2079,45 @@ function openSMSPicker(ri){
   // Build templates dynamically based on what data exists for this contact
   const templates=[];
 
-  // ── APPROVAL ──────────────────────────────────────────────────────────────
-  if(parsedOffer){
+  // ── FIRST OPTION: plain text, no template ────────────────────────────────
+  templates.push({
+    icon:"📱",
+    label:"Open text app (no template)",
+    category:"quick",
+    body:""
+  });
+
+  // ── INITIAL OUTREACH ────────────────────────────────────────────────────
+  templates.push({icon:"👋",label:"150k at 0% APR opener",category:"outreach",
+    body:`Hey ${first} — Sam here. Can get your business 150k at 0% APR. You interested?`});
+  templates.push({icon:"💳",label:"Business credit line",category:"outreach",
+    body:`Hey ${first}, Sam here. Business credit card up to 150k at 0% APR, no daily payments, no factor rates. Got a few mins?`});
+  templates.push({icon:"🔄",label:"Circling back",category:"outreach",
+    body:`${first} — circling back on the 150k 0% APR credit line. Worth a quick call?`});
+  templates.push({icon:"📞",label:"Quick call?",category:"outreach",
+    body:`Hey ${first} it's Sam — 0% APR up to 150k for your business. You open to a quick call?`});
+  templates.push({icon:"🌅",label:"Good morning options",category:"outreach",
+    body:`Good morning! I got some great options for you that can even be funded today. When can you hop on a call?`});
+
+  // ── QUALIFICATION ───────────────────────────────────────────────────────
+  templates.push({icon:"📊",label:"What's your credit score?",category:"qualify",
+    body:`What is your credit score?`});
+  templates.push({icon:"📅",label:"Available for a call?",category:"qualify",
+    body:`You available for a quick phone call now or later today?`});
+  templates.push({icon:"🤝",label:"I'm available now",category:"qualify",
+    body:`I'm available now — want to hop on a quick 5–10 minute call?`});
+
+  // ── TRI-MERGE CREDIT REPORT ─────────────────────────────────────────────
+  templates.push({icon:"📋",label:"Pull Tri-Merge report",category:"trimerge",
+    body:`${first} the next step is to pull your Tri-Merge credit report so I can review everything and find the best options for you.\n\nYou can generate your report here: creditheroscore.com\n\nCreate an account, download your report, and send it over to me. Let me know when it's done and I'll review it right away.`});
+  templates.push({icon:"🔗",label:"Credit report link",category:"trimerge",
+    body:`Create an account, download your Tri-Merge credit report, and send it over once you have it:\n\ncreditheroscore.com`});
+  templates.push({icon:"👥",label:"Co-signer Tri-Merge",category:"trimerge",
+    body:`Like we discussed, talk with your co-signer and confirm they're open to being on the application. If so, have both of you pull your Tri-Merge credit reports from creditheroscore.com and send them over for review.`});
+  templates.push({icon:"⚠️",label:"Trouble with report?",category:"trimerge",
+    body:`If you run into any trouble generating the report let me know and I'll help you. Make sure to click "Expand All" before downloading the PDF.`});
+  templates.push({icon:"🔧",label:"I'll walk you through it",category:"trimerge",
+    body:`If you have trouble accessing your report I can walk you through it step by step. Just let me know.`});
     templates.push({
       icon:"🎉",
       label:"Approved with Offer",
@@ -2140,6 +2242,10 @@ function openSMSPicker(ri){
 
   // Build the HTML grouped by category
   const categories={
+    quick:{label:"",items:[]},
+    outreach:{label:"🌟 Outreach",items:[]},
+    qualify:{label:"🎯 Qualification",items:[]},
+    trimerge:{label:"📋 Credit Report / Tri-Merge",items:[]},
     approvals:{label:"💰 Approvals & Offers",items:[]},
     docs:{label:"📂 Documents Needed",items:[]},
     followup:{label:"📞 Follow Ups",items:[]}
@@ -2149,9 +2255,14 @@ function openSMSPicker(ri){
   let html="";
   Object.values(categories).forEach(function(cat){
     if(!cat.items.length)return;
-    html+=`<div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);margin:10px 0 7px">${cat.label}</div>`;
+    if(cat.label)html+=`<div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);margin:10px 0 7px">${cat.label}</div>`;
     cat.items.forEach(function(t,ti){
       const tid="sms_t_"+ti+"_"+t.category;
+      // No-template option: open SMS app directly
+      if(t.category==="quick"&&!t.body){
+        html+=`<button onclick="window.open('sms:${phone}','_self');closeSMSPicker();" style="width:100%;background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.3);border-radius:14px;padding:14px;margin-bottom:8px;color:#a78bfa;font-size:14px;font-weight:800;touch-action:manipulation;text-align:left">📱 Open text app without template</button>`;
+        return;
+      }
       html+=`<div class="sms-card" id="${tid}" style="background:rgba(255,255,255,.04);border:1px solid rgba(45,37,80,.7);border-radius:14px;padding:13px 14px;margin-bottom:8px;cursor:pointer;touch-action:manipulation" onclick="selectSMSTemplate('${tid}',this)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <div style="font-size:13px;font-weight:800;color:#fff">${t.icon} ${t.label}</div>
@@ -2220,6 +2331,53 @@ function sendCustomSMS(){
 }
 
 function closeSMSPicker(){$("sms-ov").style.display="none";_smsIdx=null;}
+
+function sendAISMS(ri){
+  if(_smsIdx===null&&ri===undefined)return;
+  const c=contacts[ri!==undefined?ri:_smsIdx];
+  const phone=(c.phone||"").replace(/\D/g,"");
+  if(!phone)return;
+  const ta=$("ai-sms-ta");
+  const body=ta?ta.value.trim():"";
+  if(!body){toast("AI message not ready yet");return;}
+  window.open("sms:"+phone+"&body="+encodeURIComponent(body),"_self");
+  closeSMSPicker();
+  logChange("sms",c,"AI SMS: "+body.slice(0,60));
+}
+
+async function generateAISMS(ri){
+  const btn=$("ai-sms-btn"),result=$("ai-sms-result"),ta=$("ai-sms-ta");
+  if(!btn)return;
+  const c=contacts[ri!==undefined?ri:_smsIdx];
+  if(!c)return;
+  btn.textContent="✨ Writing…";btn.disabled=true;
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",max_tokens:300,
+        messages:[{role:"user",content:
+          `Write a short, natural, non-AI-sounding SMS for an MCA broker named Sam to send to a merchant.`+
+          `\nContact name: ${c.name||"the merchant"}`+
+          `\nFirst name: ${(c.name||"").split(" ")[0]||"there"}`+
+          `\nLead status: ${c.leadStatus||"unknown"}`+
+          `\nNotes: ${(c.notes||"").slice(0,300)}`+
+          `\nWants: ${c.wants||""}`+
+          `\nBest offer: ${c.approvals?(c.approvals.split("\n")[0].replace(/https?:\/\/\S+/g,"").trim()):""}`+
+          `\nCredit: ${c.credit||""}`+
+          `\nContext: MCA (merchant cash advance) or business credit line.`+
+          `\nWrite ONLY the SMS message text, no quotes, no preamble. Keep it under 160 characters if possible. Sound human, not salesy.`
+        }]
+      })
+    });
+    const data=await res.json();
+    const msg=data.content&&data.content[0]?data.content[0].text.trim():"";
+    if(msg&&result&&ta){result.style.display="block";ta.value=msg;}
+    else toast("Could not generate message");
+  }catch(e){toast("AI unavailable");}
+  btn.textContent="✨ Write message with AI";btn.disabled=false;
+}
 
 /* BOOT — instant start, no waiting for network */
 (function(){
