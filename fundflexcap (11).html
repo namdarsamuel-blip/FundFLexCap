@@ -218,8 +218,20 @@ button,input,textarea{font-family:inherit;border:none;outline:none;cursor:pointe
 <body>
 <script>
 const SHEET_URL="https://script.google.com/macros/s/AKfycbw57s4pi6D-Fan_aoqPGHvAannA-5jwcsGo6-A7Ry2b5_TAHddD4KbB6CKRTk0Ngwag/exec";
-let SHEETS=[]; // populated dynamically from the spreadsheet
+// Pre-populate SHEETS immediately from cache or hardcoded defaults
+// so nothing crashes before initSheets() runs at boot
+let SHEETS=(function(){
+  try{
+    const c=JSON.parse(localStorage.getItem("ffc_sheets_cache")||"[]");
+    if(c&&c.length){c.forEach(function(s){s.url=SHEET_URL;});return c.slice(0,2);}
+  }catch{}
+  return[
+    {label:"Fundflexcap",tab:"Fundflexcap",cache:"ffc_fundflexcap_v1",url:SHEET_URL},
+    {label:"Sam Leads",tab:"Sam Leads",cache:"ffc_sam_leads_v1",url:SHEET_URL}
+  ];
+})();
 let activeSheet=parseInt(localStorage.getItem("ffc_activeSheetIdx")||"0");
+if(activeSheet>=SHEETS.length)activeSheet=0;
 </script>
 
 
@@ -536,11 +548,9 @@ function confirmDelete(){
   closeStatusPicker();$("del-ov").style.display="flex";
 }
 
+function currentSheet(){return SHEETS[activeSheet]||SHEETS[0]||{label:"Loading",tab:"Fundflexcap",cache:"ffc_fundflexcap_v1",url:SHEET_URL};}
 function currentCache(){return currentSheet().cache+"_c";}
-
 function currentIdxKey(){return currentSheet().cache+"_i";}
-
-function currentSheet(){return SHEETS[activeSheet];}
 
 function deleteContact(){
   if(_ieIdx===null)return;const c=contacts[_ieIdx];
