@@ -364,11 +364,11 @@ let activeSheet=parseInt(localStorage.getItem("ffc_activeSheetIdx")||"0");
     </div>
     <div style="overflow-y:auto;padding:12px 14px 24px;-webkit-overflow-scrolling:touch">
       <div id="sms-template-list"></div>
-      <div style="margin-top:14px;border-top:1px solid rgba(45,37,80,.5);padding-top:14px">
-        <button onclick="generateAISMS(${ri})" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(201,162,39,.15));border:1px solid rgba(124,58,237,.35);color:#a78bfa;font-size:14px;font-weight:800;touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:8px" id="ai-sms-btn">✨ Write message with AI</button>
+      <div style="margin-top:14px;border-top:1px solid rgba(45,37,80,.5);padding-top:14px" id="sms-ai-section">
+        <button onclick="generateAISMS()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(201,162,39,.15));border:1px solid rgba(124,58,237,.35);color:#a78bfa;font-size:14px;font-weight:800;touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:8px" id="ai-sms-btn">✨ Write message with AI</button>
         <div id="ai-sms-result" style="display:none;margin-top:10px">
           <textarea id="ai-sms-ta" rows="5" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(124,58,237,.3);border-radius:12px;color:#fff;padding:12px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;line-height:1.5"></textarea>
-          <button onclick="sendAISMS(${ri})" style="width:100%;margin-top:8px;padding:12px;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#c9a227);border:none;color:#fff;font-size:14px;font-weight:800;touch-action:manipulation">Send →</button>
+          <button onclick="sendAISMS()" style="width:100%;margin-top:8px;padding:12px;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#c9a227);border:none;color:#fff;font-size:14px;font-weight:800;touch-action:manipulation">Send →</button>
         </div>
       </div>
     </div>
@@ -2332,9 +2332,9 @@ function sendCustomSMS(){
 
 function closeSMSPicker(){$("sms-ov").style.display="none";_smsIdx=null;}
 
-function sendAISMS(ri){
-  if(_smsIdx===null&&ri===undefined)return;
-  const c=contacts[ri!==undefined?ri:_smsIdx];
+function sendAISMS(){
+  if(_smsIdx===null)return;
+  const c=contacts[_smsIdx];
   const phone=(c.phone||"").replace(/\D/g,"");
   if(!phone)return;
   const ta=$("ai-sms-ta");
@@ -2345,10 +2345,11 @@ function sendAISMS(ri){
   logChange("sms",c,"AI SMS: "+body.slice(0,60));
 }
 
-async function generateAISMS(ri){
+async function generateAISMS(){
+  if(_smsIdx===null)return;
   const btn=$("ai-sms-btn"),result=$("ai-sms-result"),ta=$("ai-sms-ta");
   if(!btn)return;
-  const c=contacts[ri!==undefined?ri:_smsIdx];
+  const c=contacts[_smsIdx];
   if(!c)return;
   btn.textContent="✨ Writing…";btn.disabled=true;
   try{
