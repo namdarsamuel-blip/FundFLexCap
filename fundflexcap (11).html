@@ -2128,6 +2128,9 @@ function openSMSPicker(ri){
     body:`If you run into any trouble generating the report let me know and I'll help you. Make sure to click "Expand All" before downloading the PDF.`});
   templates.push({icon:"🔧",label:"I'll walk you through it",category:"trimerge",
     body:`If you have trouble accessing your report I can walk you through it step by step. Just let me know.`});
+
+  // ── APPROVAL ──────────────────────────────────────────────────────────────
+  if(parsedOffer){
     templates.push({
       icon:"🎉",
       label:"Approved with Offer",
