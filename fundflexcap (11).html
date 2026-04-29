@@ -1227,6 +1227,12 @@ function saveInfoEdit(){
 function setCb(row,ms,specificTime){
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
   const labelEl=$("cb-label"),label=labelEl?labelEl.value.trim()||"Wait":"Wait";
+
+  // Find the NEXT active lead BEFORE we mark this one as waiting
+  const activePl=contacts.filter(function(ct){return !isWaiting(ct);});
+  const ci=activePl.findIndex(function(ct){return ct.row===row;});
+  const nextContact=ci>=0&&ci<activePl.length-1?activePl[ci+1]:null;
+
   const due=specificTime||Date.now()+ms;
   const data={due,label,ms:ms||0};
   localStorage.setItem(CB_KEY(row),JSON.stringify(data));
@@ -1240,11 +1246,15 @@ function setCb(row,ms,specificTime){
   fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
     body:JSON.stringify({action:"setWait",sheet:s.tab,row,label,dueISO:dueDate.toISOString(),dueStr,waitStr})});
   $("cb-ov").style.display="none";
-  // Stay on next lead — don't jump to card 1
-  const pl=getPipeline();
-  const ci=pl.findIndex(function(ct){return ct===contacts[idx]||ct.row===row;});
-  if(ci>=0&&ci<pl.length-1){
-    idx=contacts.indexOf(pl[ci+1]);saveC();
+
+  // Move to next lead in active pipeline (not back to card 1)
+  if(nextContact){
+    idx=contacts.indexOf(nextContact);
+    saveC();
+  } else if(ci>0){
+    // Was last lead — go to previous
+    idx=contacts.indexOf(activePl[ci-1]);
+    saveC();
   }
   renderAll();startTick();toast(`⏱ ${label} — timer set`);
 }
@@ -2079,7 +2089,6 @@ function openSMSPicker(ri){
   if(!phone){toast("No phone number");return;}
 
   $("sms-to-name").textContent="To: "+c.name+(c.company?" · "+c.company:"");
-  $("sms-custom-body").value="";
 
   // Parse best offer from approvals
   const approvalLines=(c.approvals||"").split("\n").map(l=>l.trim()).filter(l=>l&&!l.startsWith("http"));
@@ -2331,17 +2340,7 @@ function sendTemplateSMS(btn){
   logChange("sms",c,"SMS sent: "+body.slice(0,60)+(body.length>60?"…":""));
 }
 
-function sendCustomSMS(){
-  if(_smsIdx===null)return;
-  const c=contacts[_smsIdx];
-  const phone=(c.phone||"").replace(/\D/g,"");
-  if(!phone)return;
-  const body=$("sms-custom-body").value.trim();
-  if(!body){toast("Type a message first");return;}
-  window.open("sms:"+phone+"&body="+encodeURIComponent(body),"_self");
-  closeSMSPicker();
-  logChange("sms",c,"SMS sent: "+body.slice(0,60)+(body.length>60?"…":""));
-}
+function sendCustomSMS(){} // removed - use "Open text app" option instead
 
 function closeSMSPicker(){$("sms-ov").style.display="none";_smsIdx=null;}
 
