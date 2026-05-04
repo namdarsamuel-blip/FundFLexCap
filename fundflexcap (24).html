@@ -246,20 +246,23 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
     <button class="tb-btn" onclick="openAll()" style="font-size:18px">≡</button>
   </div>
 </div>
-<!-- WAIT STRIP — sits between topbar and nav, only visible when there are waiting leads -->
-<div id="wait-strip" style="display:none;align-items:center;justify-content:flex-end;padding:3px 12px;background:rgba(10,8,22,.95);border-bottom:1px solid rgba(45,37,80,.5)">
-  <button id="wait-badge-pill" onclick="switchPipeline(pipeline==='wait'?'active':'wait')" style="padding:4px 14px;border-radius:20px;font-size:12px;font-weight:800;border:1.5px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);color:#f59e0b;touch-action:manipulation;display:flex;align-items:center;gap:6px;transition:all .2s">
-    <span id="wait-badge-icon">⏱</span><span id="wait-badge-label">Wait</span> · <span id="wait-badge-count">0</span>
-  </button>
-</div>
+<div id="wait-strip" style="display:none"></div>
 <div id="sheet-switcher" style="display:none"></div>
-<div class="nav-bar">
-  <button onclick="go(-1)" id="nav-prev" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0;transition:all .15s" ontouchend="event.preventDefault();go(-1)">‹</button>
-  <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+<div class="nav-bar" style="justify-content:space-between;padding:6px 10px">
+  <!-- LEFT: Reminder pill -->
+  <button id="reminder-pill" onclick="switchPipeline(pipeline==='reminder'?'active':'reminder')" style="display:none;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:800;border:1.5px solid rgba(124,58,237,.5);background:rgba(124,58,237,.15);color:#a78bfa;touch-action:manipulation;align-items:center;gap:5px;white-space:nowrap;transition:all .2s">🔔 <span id="rem-count">0</span></button>
+  <div id="rem-placeholder" style="width:8px;flex-shrink:0"></div>
+  <!-- CENTER: nav -->
+  <div style="display:flex;align-items:center;gap:8px">
+    <button onclick="go(-1)" id="nav-prev" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0" ontouchend="event.preventDefault();go(-1)">‹</button>
     <span id="nav-count" class="nav-count">— / —</span>
-    <button id="filter-clear-btn" onclick="clearPipelineFilter()" style="display:none;font-size:10px;font-weight:700;color:#a78bfa;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:10px;padding:2px 8px;touch-action:manipulation">✕ <span id="filter-label-text"></span></button>
+    <button onclick="go(1)" id="nav-next" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0" ontouchend="event.preventDefault();go(1)">›</button>
   </div>
-  <button onclick="go(1)" id="nav-next" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0;transition:all .15s" ontouchend="event.preventDefault();go(1)">›</button>
+  <!-- RIGHT: Wait pill -->
+  <button id="wait-badge-pill" onclick="switchPipeline(pipeline==='wait'?'active':'wait')" style="display:none;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:800;border:1.5px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);color:#f59e0b;touch-action:manipulation;align-items:center;gap:5px;white-space:nowrap;transition:all .2s">
+    <span id="wait-badge-icon">⏱</span> <span id="wait-badge-label">Wait</span> · <span id="wait-badge-count">0</span>
+  </button>
+  <div id="wait-placeholder" style="width:8px;flex-shrink:0"></div>
 </div>
 <button id="prev-btn" class="desk-nav-btn left" onclick="go(-1)" title="Previous lead">‹</button>
 <button id="next-btn" class="desk-nav-btn right" onclick="go(1)" title="Next lead">›</button>
@@ -412,6 +415,8 @@ let bulkMode=false,selectedRows=new Set(),activeStatusFilter='all';
 // ALL_STATUSES is rebuilt dynamically from the sheet's actual dropdown values each sync
 let ALL_STATUSES=[];
 function CB_KEY(row){return"cb_"+currentSheet().cache+"_"+row;}
+function REM_KEY(row){return"rem_"+currentSheet().cache+"_"+row;}
+function isReminded(ct){return !!localStorage.getItem(REM_KEY(ct.row));}
 
 function HIST_KEY(){return"hist_"+currentSheet().cache;}
 
@@ -1032,10 +1037,14 @@ function renderCard(){
     </div>`;
   }
   const statusDisplay=c.status&&c.status.startsWith("WAIT|")?"":c.status;
-  // Dim card if on active wait
   const isOnWait = !!localStorage.getItem(CB_KEY(c.row));
-  wrap.innerHTML=`<div class="lead-card">
-  <div class="card-header">
+  const isOnReminder = !!localStorage.getItem(REM_KEY(c.row));
+  // Status color applied to card as left border accent + subtle header tint
+  const accentColor=ss?ss.color:"rgba(201,162,39,.6)";
+  const accentBorder=ss?ss.border:"rgba(201,162,39,.3)";
+  const headerTint=ss?`background:linear-gradient(90deg,${ss.bg} 0%,transparent 100%)`:"";
+  wrap.innerHTML=`<div class="lead-card" style="border-left:3px solid ${isOnWait?"rgba(245,158,11,.6)":isOnReminder?"rgba(124,58,237,.6)":accentBorder}">
+  <div class="card-header" style="${headerTint}">
     <div class="card-header-top">
       <div class="avatar" style="background:linear-gradient(135deg,${col},${col}88)">${ini(c.name)}</div>
       <div class="name-block">
@@ -1047,10 +1056,15 @@ function renderCard(){
       <button class="pencil-btn" onclick="openInfoEdit(${idx})" title="Edit contact info">⚙</button>
     </div>
     ${isOnWait?`<div style="background:rgba(240,68,68,.1);border-top:1px solid rgba(240,68,68,.2);padding:7px 16px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:900;color:#fca5a5;letter-spacing:.06em;text-transform:uppercase"><span style="font-size:14px">⛔</span> DO NOT CALL — WAIT ACTIVE</div>`:''}
+    ${isOnReminder?`<div style="background:rgba(124,58,237,.1);border-top:1px solid rgba(124,58,237,.2);padding:7px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;font-weight:900;color:#a78bfa;letter-spacing:.04em;text-transform:uppercase"><span>${(function(){const s=localStorage.getItem(REM_KEY(c.row));if(!s)return"🔔 REMINDER";const d=JSON.parse(s);return d.fired?"🔔 REMINDER DUE — tap Done to return":"🔔 REMINDER PENDING";}())}</span><span style="font-size:10px;font-weight:700;color:rgba(167,139,250,.7);text-transform:none">${(function(){const s=localStorage.getItem(REM_KEY(c.row));if(!s)return"";const d=JSON.parse(s);return d.label||"";}())}</span></div>`:""}
     <div class="card-meta-row">
       <span class="status-pill" onclick="openStatusPicker(${idx})" style="background:${badgeBg};border:1.5px solid ${badgeBdr};color:${badgeClr}${isOnWait?';opacity:.4;filter:grayscale(.5)':''}">● ${rawLabel||"Set status"}</span>
       ${nonWaitTags.map(t=>`<span class="tag-pill" style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);color:#a78bfa${isOnWait?';opacity:.4':''}">${t}</span>`).join("")}
       ${buildCbHtml(c)}
+      ${pipeline==='reminder'&&isOnReminder
+        ? `<button onclick="clearReminder(${c.row})" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:800;border:1.5px solid rgba(52,211,153,.5);background:rgba(52,211,153,.12);color:#34d399;touch-action:manipulation;white-space:nowrap">✓ Done — back to leads</button>`
+        : `<button onclick="openReminderPicker(${c.row})" style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid ${isOnReminder?"rgba(124,58,237,.6)":"rgba(45,37,80,.8)"};background:${isOnReminder?"rgba(124,58,237,.2)":"rgba(255,255,255,.04)"};color:${isOnReminder?"#a78bfa":"var(--sub)"};touch-action:manipulation;white-space:nowrap">🔔 ${isOnReminder?"Reminder":"Remind me"}</button>`
+      }
     </div>
     <div style="padding:0 16px 12px;display:flex;align-items:flex-start;gap:8px">
       <span style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);flex-shrink:0;padding-top:9px">Status</span>
@@ -1135,6 +1149,27 @@ function renderOfferCards(str){
   else{best=unparsed[0];rest=unparsed.slice(1);}
   const uid="mo_"+Math.random().toString(36).slice(2);
   return`<div class="offers-section"><div class="section-label"><span>💰 Best Offer</span></div>${offerCardHtml(best)}${rest.length?`<div id="${uid}" style="display:none">${rest.map(offerCardHtml).join("")}</div><button class="more-offers-btn" onclick="var e=document.getElementById('${uid}');var o=e.style.display==='block';e.style.display=o?'none':'block';this.textContent=o?'▼ ${rest.length} more offer${rest.length>1?'s':''}':'▲ Hide'">▼ ${rest.length} more offer${rest.length>1?"s":""}</button>`:""}</div>`;
+}
+
+function restoreReminderTimers(){
+  contacts.forEach(function(c){
+    const key=REM_KEY(c.row);
+    const r=(c.reminder||"").trim();
+    if(!r){localStorage.removeItem(key);return;}
+    if(localStorage.getItem(key))return; // already have it
+    // Parse "[Label] due Apr 30, 2026 at 5:00 PM"
+    let due=null,label="Reminder";
+    const m=r.match(/^\[([^\]]+)\]\s+due\s+(.+)$/i);
+    if(m){label=m[1].trim();due=parseWaitDate(m[2]);}
+    else{due=parseWaitDate(r);}
+    if(!due||isNaN(due)){
+      // Unparseable but col M has data — restore as a past-due reminder so lead stays in reminder section
+      localStorage.setItem(key,JSON.stringify({due:Date.now()-1000,label:r,fired:true}));
+      return;
+    }
+    // Always restore — even if expired, keep in reminder until manually dismissed
+    localStorage.setItem(key,JSON.stringify({due,label,fired:due<=Date.now()}));
+  });
 }
 
 function parseWaitDate(str){
@@ -1287,30 +1322,55 @@ function startHoldSync(e){_holdTimer=setTimeout(()=>{_holdTimer=null;syncGoFirst
 
 function startTick(){
   if(_tick)return;
+  const _notified5min=new Set();
+  const _remNotified=new Set();
   _tick=setInterval(function(){
     let anyExpired=false;
     contacts.forEach(function(ct){
+      // ── WAIT TIMER ──
       const el=document.getElementById("cd_"+ct.row);
       const s=localStorage.getItem(CB_KEY(ct.row));
-      if(!s)return;
-      const{due,label}=JSON.parse(s);
-      const diff=due-Date.now();
-      if(el){
-        el.textContent=fmtCountdown(due,label);
-        const cls=diff<0?"red":diff<3600000?"amber":"green";
-        el.className=el.className.replace(/\b(red|amber|green|set)\b/,cls);
+      if(s){
+        const{due,label}=JSON.parse(s);
+        const diff=due-Date.now();
+        if(el){
+          el.textContent=fmtCountdown(due,label);
+          const cls=diff<0?"red":diff<3600000?"amber":"green";
+          el.className=el.className.replace(/\b(red|amber|green|set)\b/,cls);
+        }
+        if(diff>0&&diff<=300000&&!_notified5min.has(ct.row)){
+          _notified5min.add(ct.row);
+          sendNotification("⏰ Call back in 5 min",(ct.name||"Lead")+(label&&label!=="Wait"?" — "+label:""),"warn_"+ct.row);
+        }
+        if(diff<=0){
+          anyExpired=true;
+          _notified5min.delete(ct.row);
+          localStorage.removeItem(CB_KEY(ct.row));
+          const c=contacts.find(x=>x.row===ct.row);
+          if(c){c.waitUntil="";}
+          const sh=currentSheet();
+          fetch(sh.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+            body:JSON.stringify({action:"clearWait",sheet:sh.tab,row:ct.row})});
+          sendNotification("📞 Time to call — "+(ct.name||"Lead"),(ct.company||""),"expire_"+ct.row);
+          toast("⏰ "+(ct.name||"Lead")+" — time to call!");
+        }
       }
-      // Auto-expire: timer hit 0
-      if(diff<=0){
-        anyExpired=true;
-        localStorage.removeItem(CB_KEY(ct.row));
-        // Clear col K on sheet automatically
-        const c=contacts.find(x=>x.row===ct.row);
-        if(c){c.waitUntil="";}
-        const sh=currentSheet();
-        fetch(sh.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
-          body:JSON.stringify({action:"clearWait",sheet:sh.tab,row:ct.row})});
-        toast("⏰ "+label+" timer expired — lead returned to pipeline");
+
+      // ── REMINDER TIMER ── fire notification when due, but KEEP in reminder section
+      const rs=localStorage.getItem(REM_KEY(ct.row));
+      if(rs){
+        const rd=JSON.parse(rs);
+        const rdiff=rd.due-Date.now();
+        // Fire notification when timer hits 0 — but don't remove from reminder
+        if(rdiff<=0&&!_remNotified.has(ct.row)){
+          _remNotified.add(ct.row);
+          sendNotification("🔔 Reminder — "+(ct.name||"Lead"),(rd.label||""),"rem_"+ct.row);
+          toast("🔔 Reminder: "+(ct.name||"Lead")+(rd.label?" — "+rd.label:""));
+          // Mark as fired (keep key but set due to 0 so we don't re-fire)
+          rd.fired=true;
+          localStorage.setItem(REM_KEY(ct.row),JSON.stringify(rd));
+          anyExpired=true; // trigger re-render to update badge/card
+        }
       }
     });
     if(anyExpired){saveC();renderAll();}
@@ -1384,7 +1444,7 @@ async function syncNow(goFirst=false,silent=false){
       positionOnFirstActive();
     }
     idx=Math.max(0,Math.min(idx,contacts.length-1));
-    saveC();restoreWaitTimers();
+    saveC();restoreWaitTimers();restoreReminderTimers();
     // Build status list from contacts (fast), then fetch from sheet in background (accurate)
     syncStatusesFromContacts();
     if(!silent)syncState("ok");renderAll();
@@ -1735,58 +1795,73 @@ function getPipeline(){
       return da-db;
     });
   }
+  if(pipeline==='reminder'){
+    return contacts.filter(function(ct){return isReminded(ct)&&!isWaiting(ct);}).sort(function(a,b){
+      const da=JSON.parse(localStorage.getItem(REM_KEY(a.row))||'{"due":9e15}').due;
+      const db=JSON.parse(localStorage.getItem(REM_KEY(b.row))||'{"due":9e15}').due;
+      return da-db;
+    });
+  }
   if(pipeline==='filtered'&&activeStatusFilter&&activeStatusFilter!=='all'){
     return contacts.filter(function(ct){
-      if(isWaiting(ct))return false;
+      if(isWaiting(ct)||isReminded(ct))return false;
       const label=(ct.leadStatus||"").replace(/^[\d.]+\.?\s*/,"").trim();
       return label===activeStatusFilter;
     });
   }
-  return contacts.filter(function(ct){return !isWaiting(ct);});
+  // Active: exclude waiting AND reminded leads
+  return contacts.filter(function(ct){return !isWaiting(ct)&&!isReminded(ct);});
 }
 
 function clearPipelineFilter(){
   pipeline='active';activeStatusFilter='all';
-  const btn=$("filter-clear-btn");if(btn)btn.style.display="none";
   renderAll();toast("Filter cleared");
 }
 
 function switchPipeline(p){
   pipeline=p;
   const list=getPipeline();
-  // Always land on the first lead of the pipeline you just entered
   idx=list.length>0?contacts.indexOf(list[0]):0;
   saveC();renderAll();
 }
 
 function updateWaitBadge(){
   const wc=contacts.filter(function(ct){return isWaiting(ct);}).length;
-  const strip=$("wait-strip");
-  const badge=$("wait-badge-pill");
-  const count=$("wait-badge-count");
-  const label=$("wait-badge-label");
-  const icon=$("wait-badge-icon");
+  const rc=contacts.filter(function(ct){return isReminded(ct)&&!isWaiting(ct);}).length;
 
-  if(strip){strip.style.display=wc>0?"flex":"none";}
+  // Wait pill (right)
+  const badge=$("wait-badge-pill"),bcount=$("wait-badge-count"),blabel=$("wait-badge-label"),bicon=$("wait-badge-icon");
+  const waitPH=$("wait-placeholder");
+  if(badge){
+    if(wc>0){
+      badge.style.display="flex";
+      if(waitPH)waitPH.style.display="none";
+      if(pipeline==="wait"){
+        if(bicon)bicon.textContent="←";if(blabel)blabel.textContent="Active";
+        if(bcount)bcount.style.display="none";
+        badge.style.background="rgba(124,58,237,.2)";badge.style.borderColor="rgba(124,58,237,.5)";badge.style.color="#a78bfa";
+      } else {
+        if(bicon)bicon.textContent="⏱";if(blabel)blabel.textContent="Wait";
+        if(bcount){bcount.textContent=wc;bcount.style.display="";}
+        badge.style.background="rgba(245,158,11,.12)";badge.style.borderColor="rgba(245,158,11,.45)";badge.style.color="#f59e0b";
+      }
+    } else {badge.style.display="none";if(waitPH)waitPH.style.display="block";}
+  }
 
-  if(badge&&wc>0){
-    if(pipeline==="wait"){
-      // In wait view — button says "← Active" to go back
-      if(icon)icon.textContent="←";
-      if(label)label.textContent="Active";
-      if(count)count.style.display="none";
-      badge.style.background="rgba(124,58,237,.2)";
-      badge.style.borderColor="rgba(124,58,237,.5)";
-      badge.style.color="#a78bfa";
-    } else {
-      // In active view — button says "⏱ Wait · N"
-      if(icon)icon.textContent="⏱";
-      if(label)label.textContent="Wait";
-      if(count){count.textContent=wc;count.style.display="";}
-      badge.style.background="rgba(245,158,11,.12)";
-      badge.style.borderColor="rgba(245,158,11,.45)";
-      badge.style.color="#f59e0b";
-    }
+  // Reminder pill (left)
+  const rpill=$("reminder-pill"),rcount=$("rem-count"),rPH=$("rem-placeholder");
+  if(rpill){
+    if(rc>0){
+      rpill.style.display="flex";
+      if(rPH)rPH.style.display="none";
+      if(pipeline==="reminder"){
+        rpill.textContent="← Active";
+        rpill.style.background="rgba(245,158,11,.15)";rpill.style.borderColor="rgba(245,158,11,.4)";rpill.style.color="#f59e0b";
+      } else {
+        rpill.innerHTML="🔔 <span id='rem-count'>"+rc+"</span>";
+        rpill.style.background="rgba(124,58,237,.15)";rpill.style.borderColor="rgba(124,58,237,.5)";rpill.style.color="#a78bfa";
+      }
+    } else {rpill.style.display="none";if(rPH)rPH.style.display="block";}
   }
 
   const nc=$("nav-count");
@@ -1794,9 +1869,10 @@ function updateWaitBadge(){
   const pos=pl.findIndex(function(ct){return ct===contacts[idx];})+1;
   if(nc){
     nc.textContent=(pos||1)+" of "+pl.length;
-    nc.style.background=pipeline==="wait"?"linear-gradient(135deg,rgba(245,158,11,.25),rgba(245,158,11,.1))":"linear-gradient(135deg,rgba(124,58,237,.2),rgba(201,162,39,.15))";
-    nc.style.borderColor=pipeline==="wait"?"rgba(245,158,11,.4)":"rgba(201,162,39,.3)";
-    nc.style.color=pipeline==="wait"?"#f59e0b":"var(--gold)";
+    const isWaitView=pipeline==="wait",isRemView=pipeline==="reminder";
+    nc.style.background=isWaitView?"linear-gradient(135deg,rgba(245,158,11,.25),rgba(245,158,11,.1))":isRemView?"linear-gradient(135deg,rgba(124,58,237,.25),rgba(124,58,237,.1))":"linear-gradient(135deg,rgba(124,58,237,.2),rgba(201,162,39,.15))";
+    nc.style.borderColor=isWaitView?"rgba(245,158,11,.4)":isRemView?"rgba(124,58,237,.4)":"rgba(201,162,39,.3)";
+    nc.style.color=isWaitView?"#f59e0b":isRemView?"#a78bfa":"var(--gold)";
   }
   const prevBtn=$("prev-btn"),nextBtn=$("next-btn");
   if(prevBtn)prevBtn.classList.toggle("disabled",pos<=1);
@@ -1805,16 +1881,90 @@ function updateWaitBadge(){
   if(navPrev){navPrev.style.opacity=pos<=1?".25":"1";navPrev.style.pointerEvents=pos<=1?"none":"auto";}
   if(navNext){navNext.style.opacity=(pos>=pl.length||!pl.length)?".25":"1";navNext.style.pointerEvents=(pos>=pl.length||!pl.length)?"none":"auto";}
   const fc=$("float-nav-count");if(fc)fc.textContent=(pos||1)+" of "+pl.length;
-  // Show/hide filter indicator
-  const filterBtn=$("filter-clear-btn"),filterLbl=$("filter-label-text");
-  if(filterBtn){
-    if(pipeline==='filtered'&&activeStatusFilter&&activeStatusFilter!=='all'){
-      filterBtn.style.display="inline-flex";
-      if(filterLbl)filterLbl.textContent=activeStatusFilter;
-    } else {
-      filterBtn.style.display="none";
-    }
+}
+
+// ── REMINDER SYSTEM ───────────────────────────────────────────────────────────
+function openReminderPicker(row){
+  const ov=$("cb-ov"); // reuse the callback overlay
+  const stored=localStorage.getItem(REM_KEY(row));
+  const cur=stored?JSON.parse(stored):null;
+  const now=new Date();
+  const nextHour=new Date(now);nextHour.setMinutes(0,0,0);nextHour.setHours(nextHour.getHours()+1);
+  const dtDefault=nextHour.toISOString().slice(0,16);
+  const opts=[
+    {l:"30 min",ms:1800000},{l:"1 hour",ms:3600000},{l:"2 hours",ms:7200000},
+    {l:"3 hours",ms:10800000},{l:"4 hours",ms:14400000},{l:"Tomorrow",ms:86400000},
+    {l:"2 days",ms:172800000},{l:"Next week",ms:604800000}
+  ];
+  ov.innerHTML=`<div style="width:100%;background:linear-gradient(180deg,#1a1040,#130e2e);border-radius:24px 24px 0 0;border-top:1px solid rgba(124,58,237,.25);padding:0 0 50px;max-height:88vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.16,1,.3,1) both">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 12px;border-bottom:1px solid rgba(45,37,80,.5)">
+      <div><div style="font-size:18px;font-weight:900;color:#fff">🔔 Set Reminder</div><div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px">Lead moves to Reminder section until done</div></div>
+      <button onclick="$('cb-ov').style.display='none'" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <div style="padding:16px 16px 0">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:6px">Note — what to do</div>
+      <input id="rem-label-input" value="${cur?.label||""}" placeholder="e.g. call back, send docs, follow up…" style="width:100%;padding:13px 14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:12px;color:var(--text);font-size:14px;box-sizing:border-box;margin-bottom:16px" onfocus="this.style.borderColor='#a78bfa'" onblur="this.style.borderColor='rgba(45,37,80,.8)'"/>
+      <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:8px">Quick select</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+        ${opts.map(o=>`<button onclick="setReminder(${row},${o.ms})" style="padding:13px;border-radius:12px;font-size:14px;font-weight:700;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);color:rgba(255,255,255,.8);touch-action:manipulation">${o.l}</button>`).join("")}
+      </div>
+      <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:8px">Specific time</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input type="datetime-local" id="rem-datetime" value="${dtDefault}" style="flex:1;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);color:var(--text);font-size:13px;color-scheme:dark"/>
+        <button onclick="setReminderCustom(${row})" style="padding:12px 16px;border-radius:12px;background:rgba(124,58,237,.2);border:1.5px solid rgba(124,58,237,.4);color:#a78bfa;font-size:14px;font-weight:700;touch-action:manipulation;white-space:nowrap">Set time</button>
+      </div>
+      ${cur?`<button onclick="clearReminder(${row});$('cb-ov').style.display='none'" style="width:100%;margin-top:6px;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove reminder</button>`:""}
+      <button onclick="$('cb-ov').style.display='none'" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;border:1.5px solid rgba(45,37,80,.8);color:var(--sub);font-size:14px;font-weight:600">Cancel</button>
+    </div>
+  </div>`;
+  ov.style.display="flex";
+}
+
+function setReminder(row,ms,specificTime){
+  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+  const labelEl=document.getElementById("rem-label-input");
+  const label=labelEl?labelEl.value.trim()||"Reminder":"Reminder";
+  const due=specificTime||Date.now()+ms;
+  localStorage.setItem(REM_KEY(row),JSON.stringify({due,label}));
+  // Find next active lead before marking as reminded
+  const activePl=contacts.filter(function(ct){return !isWaiting(ct)&&!isReminded(ct);});
+  const ci=activePl.findIndex(function(ct){return ct.row===row;});
+  const nextC=ci>=0&&ci<activePl.length-1?activePl[ci+1]:ci>0?activePl[ci-1]:null;
+  // Write to col M on sheet
+  const dueDate=new Date(due);
+  const dueStr=dueDate.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})+" at "+dueDate.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+  const remStr="["+label+"] due "+dueStr;
+  const c=contacts.find(x=>x.row===row);
+  if(c){c.reminder=remStr;saveC();}
+  const s=currentSheet();
+  fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+    body:JSON.stringify({action:"updateCell",sheet:s.tab,row,field:"reminder",value:remStr})});
+  document.getElementById("cb-ov").style.display="none";
+  if(nextC){idx=contacts.indexOf(nextC);saveC();}
+  renderAll();toast("🔔 Reminder set — "+label);
+}
+
+function setReminderCustom(row){
+  const dtEl=document.getElementById("rem-datetime");
+  if(!dtEl||!dtEl.value){toast("Pick a date and time first");return;}
+  const due=new Date(dtEl.value).getTime();
+  if(!due||due<=Date.now()){toast("Please pick a future time");return;}
+  setReminder(row,0,due);
+}
+
+function clearReminder(row){
+  localStorage.removeItem(REM_KEY(row));
+  const c=contacts.find(x=>x.row===row);
+  if(c){c.reminder="";saveC();}
+  const s=currentSheet();
+  fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+    body:JSON.stringify({action:"updateCell",sheet:s.tab,row,field:"reminder",value:""})});
+  if(pipeline==="reminder"){
+    const remaining=contacts.filter(function(ct){return isReminded(ct)&&!isWaiting(ct);});
+    if(!remaining.length){pipeline="active";positionOnFirstActive();toast("No more reminders — back to active");}
+    else{const list=getPipeline();idx=contacts.indexOf(list[0]);saveC();}
   }
+  renderAll();
 }
 
 // ── TOPBAR ──────────────────────────────────────────────────────────────────
@@ -2341,6 +2491,7 @@ async function generateAISMS(){
   if(cacheLoaded){
     // restoreWaitTimers MUST run first — it clears stale local timers where col K is empty
     restoreWaitTimers();
+    restoreReminderTimers();
     syncStatusesFromContacts();
     positionOnFirstActive(); // now guaranteed to skip only leads with real active timers
     renderAll();
