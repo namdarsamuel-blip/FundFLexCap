@@ -7,51 +7,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="FundFlexCap"/>
 <title>FundFlexCap</title>
-<script>
-// ── SERVICE WORKER + NOTIFICATIONS ─────────────────────────────────────────
-// Register inline service worker for push notifications
-if('serviceWorker' in navigator){
-  const swCode=`
-self.addEventListener('notificationclick',function(e){
-  e.notification.close();
-  e.waitUntil(clients.matchAll({type:'window'}).then(function(cs){
-    if(cs.length)return cs[0].focus();
-    return clients.openWindow('/');
-  }));
-});
-self.addEventListener('message',function(e){
-  if(e.data&&e.data.type==='NOTIFY'){
-    self.registration.showNotification(e.data.title,{
-      body:e.data.body,
-      icon:'/favicon.ico',
-      tag:e.data.tag||'ffc',
-      requireInteraction:true
-    });
-  }
-});`;`;
-  const blob=new Blob([swCode],{type:'application/javascript'});
-  const swUrl=URL.createObjectURL(blob);
-  navigator.serviceWorker.register(swUrl).then(function(reg){
-    window._swReg=reg;
-  }).catch(function(){});
-}
-
-function requestNotificationPermission(){
-  if(!('Notification' in window))return Promise.resolve('unsupported');
-  if(Notification.permission==='granted')return Promise.resolve('granted');
-  return Notification.requestPermission();
-}
-
-function sendNotification(title,body,tag){
-  if(Notification.permission!=='granted')return;
-  if(window._swReg&&window._swReg.active){
-    window._swReg.active.postMessage({type:'NOTIFY',title,body,tag});
-  } else {
-    // Fallback: direct notification
-    try{new Notification(title,{body,tag,requireInteraction:true});}catch(e){}
-  }
-}
-</script>
 <style>
 :root{--bg:#0d0a1a;--card:#13102a;--border:#2d2550;--text:#ede8ff;--sub:#7a6fa8;--ghost:#1e1838;--green:#00c27a;--red:#f04444;--blue:#3b8bff;--purple:#7c3aed;--gold:#c9a227;--amber:#f59e0b}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -117,8 +72,7 @@ button,input,textarea{font-family:inherit;border:none;outline:none;cursor:pointe
 .note-para:last-child{margin-bottom:0}
 .notes-empty{font-size:13px;color:var(--sub);font-style:italic;display:flex;align-items:center;gap:8px}
 .add-note-hint{font-size:11px;font-weight:700;color:var(--gold);background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.2);padding:3px 10px;border-radius:20px}
-details summary::-webkit-details-marker{display:none}
-details[open] summary span:first-child{transform:rotate(90deg);display:inline-block}
+.info-grid-section{}
 .info-2col{}
 .info-field-label{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);margin-bottom:1px}
 .info-field-val{font-size:13px;font-weight:600;color:var(--text);word-break:break-word;line-height:1.2}
@@ -299,15 +253,13 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
   </button>
 </div>
 <div id="sheet-switcher" style="display:none"></div>
-<div class="nav-bar" style="justify-content:space-between">
-  <button id="filter-clear-btn" onclick="clearPipelineFilter()" style="display:none;font-size:11px;font-weight:800;color:#a78bfa;background:rgba(124,58,237,.15);border:1.5px solid rgba(124,58,237,.3);border-radius:20px;padding:4px 10px;touch-action:manipulation;flex-shrink:0;gap:4px;align-items:center">✕ <span id="filter-label-text"></span></button>
-  <div id="filter-clear-placeholder" style="width:36px;flex-shrink:0"></div>
-  <div style="display:flex;align-items:center;gap:10px">
-    <button onclick="go(-1)" id="nav-prev" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0;transition:all .15s" ontouchend="event.preventDefault();go(-1)">‹</button>
+<div class="nav-bar">
+  <button onclick="go(-1)" id="nav-prev" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0;transition:all .15s" ontouchend="event.preventDefault();go(-1)">‹</button>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
     <span id="nav-count" class="nav-count">— / —</span>
-    <button onclick="go(1)" id="nav-next" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0;transition:all .15s" ontouchend="event.preventDefault();go(1)">›</button>
+    <button id="filter-clear-btn" onclick="clearPipelineFilter()" style="display:none;font-size:10px;font-weight:700;color:#a78bfa;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:10px;padding:2px 8px;touch-action:manipulation">✕ <span id="filter-label-text"></span></button>
   </div>
-  <div style="width:36px;flex-shrink:0"></div>
+  <button onclick="go(1)" id="nav-next" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0;transition:all .15s" ontouchend="event.preventDefault();go(1)">›</button>
 </div>
 <button id="prev-btn" class="desk-nav-btn left" onclick="go(-1)" title="Previous lead">‹</button>
 <button id="next-btn" class="desk-nav-btn right" onclick="go(1)" title="Next lead">›</button>
@@ -849,7 +801,6 @@ function openCallbackPicker(row){
       </div>
 
       ${cur?`<button onclick="clearCb(${row});$('cb-ov').style.display='none'" style="width:100%;margin-top:6px;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove timer</button>`:""}
-      ${'Notification' in window && Notification.permission==='default'?`<button onclick="requestNotificationPermission().then(p=>{if(p==='granted'){toast('🔔 Notifications on — you will be reminded when timers expire');}else{toast('Notifications blocked — enable in browser settings');}}" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;border:1.5px solid rgba(245,158,11,.3);color:#f59e0b;font-size:13px;font-weight:700;background:rgba(245,158,11,.06);display:flex;align-items:center;justify-content:center;gap:6px">🔔 Enable phone reminders</button>`:''}
       <button onclick="$('cb-ov').style.display='none'" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;border:1.5px solid rgba(45,37,80,.8);color:var(--sub);font-size:14px;font-weight:600">Cancel</button>
     </div>
   </div>`;
@@ -1075,10 +1026,9 @@ function renderCard(){
   const notesHtml=notesParas.length?notesParas.map(p=>`<div class="note-para">${p}</div>`).join(""):`<div class="notes-empty"><span>No notes yet</span><span class="add-note-hint">+ Add note</span></div>`;
   function fi(label,val,hi=false,full=false){
     const style=full?"grid-column:1/-1":"";
-    const isEmpty=!val;
-    return`<div style="${style};padding:10px 14px;border-bottom:1px solid rgba(45,37,80,.35)">
-      <div style="font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">${label}</div>
-      <div style="font-size:13px;font-weight:700;color:${hi?"var(--gold)":isEmpty?"rgba(255,255,255,.18)":"var(--text)"};line-height:1.3;word-break:break-word">${val||"—"}</div>
+    return`<div style="${style};padding:8px 6px;border-bottom:1px solid rgba(45,37,80,.5);border-right:1px solid rgba(45,37,80,.5);text-align:center">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);margin-bottom:2px">${label}</div>
+      <div style="font-size:13px;font-weight:${hi?800:600};color:${hi?"var(--gold)":"var(--text)"};${!val?"opacity:.3":""}line-height:1.2;word-break:break-word">${val||"—"}</div>
     </div>`;
   }
   const statusDisplay=c.status&&c.status.startsWith("WAIT|")?"":c.status;
@@ -1119,25 +1069,18 @@ function renderCard(){
     ${notesHtml}
   </div>
   ${renderOfferCards(c.approvals)}
-  <div style="background:rgba(0,0,0,.12);border-top:1.5px solid rgba(45,37,80,.5);${isOnWait?'opacity:.4':''}">
-    ${(c.credit||c.revenue)?`<div style="display:grid;grid-template-columns:${c.credit&&c.revenue?'1fr 1fr':'1fr'};border-bottom:1px solid rgba(45,37,80,.35)">
-      ${c.credit?`<div style="padding:10px 14px;${c.revenue?'border-right:1px solid rgba(45,37,80,.35)':''}">
-        <div style="font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:2px">Credit Score</div>
-        <div style="font-size:26px;font-weight:900;color:var(--gold);letter-spacing:-.5px;line-height:1">${c.credit}</div>
-      </div>`:''}
-      ${c.revenue?`<div style="padding:10px 14px">
-        <div style="font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:2px">Revenue</div>
-        <div style="font-size:18px;font-weight:900;color:var(--gold);line-height:1">${c.revenue}</div>
-      </div>`:''}
-    </div>`:''}
-    <div style="display:grid;grid-template-columns:1fr 1fr">
+  <div style="border-top:1px solid rgba(45,37,80,.6);border-bottom:1px solid rgba(45,37,80,.6);background:rgba(0,0,0,.15);${isOnWait?'opacity:.4':''}">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr">
+      ${fi("Credit Score",c.credit,true)}
+      ${fi("Revenue",c.revenue,true)}
       ${fi("Wants",c.wants)}
       ${fi("DL / VC",c.dlVc)}
       ${fi("Federal Tax",fmtEIN(c.federalTax))}
       ${fi("Biz Date",c.businessDate)}
-      ${fi("Industry",c.industry)}
       ${fi("DOB",c.dob)}
-      ${fi("Social",fmtSSN(c.social),false,true)}
+      ${fi("Industry",c.industry)}
+      ${fi("Social",fmtSSN(c.social))}
+      ${fi("Approvals",c.approvals?(c.approvals.split("\n")[0].replace(/https?:\/\/\S+/g,"").trim()):"",false,true)}
     </div>
   </div>
   <div class="card-bottom">
@@ -1283,12 +1226,6 @@ function saveInfoEdit(){
 
 function setCb(row,ms,specificTime){
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
-  // Request notification permission when user sets their first timer
-  if(typeof requestNotificationPermission==='function'&&Notification&&Notification.permission==='default'){
-    requestNotificationPermission().then(function(p){
-      if(p==='granted')toast("🔔 Notifications enabled — you'll be reminded when timers expire");
-    });
-  }
   const labelEl=$("cb-label"),label=labelEl?labelEl.value.trim()||"Wait":"Wait";
 
   // Find the NEXT active lead BEFORE we mark this one as waiting
@@ -1346,7 +1283,6 @@ function startHoldSync(e){_holdTimer=setTimeout(()=>{_holdTimer=null;syncGoFirst
 
 function startTick(){
   if(_tick)return;
-  const _notified5min=new Set(); // track 5-min warnings sent
   _tick=setInterval(function(){
     let anyExpired=false;
     contacts.forEach(function(ct){
@@ -1360,31 +1296,17 @@ function startTick(){
         const cls=diff<0?"red":diff<3600000?"amber":"green";
         el.className=el.className.replace(/\b(red|amber|green|set)\b/,cls);
       }
-      // 5-minute warning notification
-      if(diff>0&&diff<=300000&&!_notified5min.has(ct.row)){
-        _notified5min.add(ct.row);
-        sendNotification(
-          "⏰ Call back in 5 min",
-          (ct.name||"A lead")+(label&&label!=="Wait"?" — "+label:"")+" · "+currentSheet().label,
-          "warn_"+ct.row
-        );
-      }
-      // Timer expired — fire notification and clear
+      // Auto-expire: timer hit 0
       if(diff<=0){
         anyExpired=true;
-        _notified5min.delete(ct.row);
         localStorage.removeItem(CB_KEY(ct.row));
+        // Clear col K on sheet automatically
         const c=contacts.find(x=>x.row===ct.row);
         if(c){c.waitUntil="";}
         const sh=currentSheet();
         fetch(sh.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
           body:JSON.stringify({action:"clearWait",sheet:sh.tab,row:ct.row})});
-        sendNotification(
-          "📞 Time to call — "+( ct.name||"Lead"),
-          (ct.company?ct.company+" · ":"")+(label&&label!=="Wait"?label+" · ":"")+currentSheet().label,
-          "expire_"+ct.row
-        );
-        toast("⏰ "+( ct.name||"Lead")+" — time to call!");
+        toast("⏰ "+label+" timer expired — lead returned to pipeline");
       }
     });
     if(anyExpired){saveC();renderAll();}
@@ -1794,10 +1716,7 @@ function initSheets(){
       contacts=[];idx=0;
       const w=document.getElementById("lead-card");
       if(w)w.innerHTML='<div class="empty"><span class="empty-icon">⏳</span>Loading '+SHEETS[activeSheet].label+"…</div>";
-      syncNow(true,false);  // goFirst=true only because contacts were cleared, not user-initiated
-    } else if(newCache&&newCache===prevCache){
-      // Same sheet — just silently refresh data without changing card position
-      syncNow(false,true);
+      syncNow(true,false);
     }
   });
 }
@@ -1882,12 +1801,15 @@ function updateWaitBadge(){
   if(navPrev){navPrev.style.opacity=pos<=1?".25":"1";navPrev.style.pointerEvents=pos<=1?"none":"auto";}
   if(navNext){navNext.style.opacity=(pos>=pl.length||!pl.length)?".25":"1";navNext.style.pointerEvents=(pos>=pl.length||!pl.length)?"none":"auto";}
   const fc=$("float-nav-count");if(fc)fc.textContent=(pos||1)+" of "+pl.length;
-  const filterBtn=$("filter-clear-btn"),filterLbl=$("filter-label-text"),placeholder=$("filter-clear-placeholder");
+  // Show/hide filter indicator
+  const filterBtn=$("filter-clear-btn"),filterLbl=$("filter-label-text");
   if(filterBtn){
-    const active=pipeline==='filtered'&&activeStatusFilter&&activeStatusFilter!=='all';
-    filterBtn.style.display=active?"inline-flex":"none";
-    if(placeholder)placeholder.style.display=active?"none":"block";
-    if(active&&filterLbl)filterLbl.textContent=activeStatusFilter;
+    if(pipeline==='filtered'&&activeStatusFilter&&activeStatusFilter!=='all'){
+      filterBtn.style.display="inline-flex";
+      if(filterLbl)filterLbl.textContent=activeStatusFilter;
+    } else {
+      filterBtn.style.display="none";
+    }
   }
 }
 
@@ -2137,25 +2059,19 @@ function showEndOfPipeline(which){
 function saveToContacts(ri){
   const ct=contacts[ri];if(!ct)return;
   const ph=(ct.phone||"").replace(/\D/g,"");
-  // Name field = merchant's name (not company)
-  // Company goes in ORG field and also prepended to NOTE so it's visible
-  const noteLines=[];
-  if(ct.company)noteLines.push("Business: "+ct.company);
-  if(ct.notes)noteLines.push(ct.notes.replace(/\n/g,"\\n").slice(0,300));
   const vcard=[
     "BEGIN:VCARD","VERSION:3.0",
-    "FN:"+(ct.name||ct.company||""),
-    "N:"+(ct.name||ct.company||"")+";;;;",
-    ct.company?"ORG:"+ct.company:"",
+    "FN:"+(ct.name||""),
+    "ORG:"+(ct.company||""),
     ph?"TEL;TYPE=CELL:"+ph:"",
     ct.email?"EMAIL:"+ct.email:"",
-    noteLines.length?"NOTE:"+noteLines.join("\\n"):"",
+    ct.notes?"NOTE:"+(ct.notes.replace(/\n/g,"\\n")):"",
     "END:VCARD"
   ].filter(Boolean).join("\r\n");
   const blob=new Blob([vcard],{type:"text/vcard"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
-  a.href=url;a.download=(ct.name||ct.company||"contact").replace(/[^a-z0-9]/gi,"_")+".vcf";
+  a.href=url;a.download=(ct.name||"contact").replace(/[^a-z0-9]/gi,"_")+".vcf";
   document.body.appendChild(a);a.click();
   setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
   toast("📇 Contact saved");
@@ -2165,8 +2081,8 @@ function saveToContacts(ri){
 // ── SMS TEMPLATE PICKER ───────────────────────────────────────────────────────
 let _smsIdx=null;
 
-// ── SMS NAV STATE ─────────────────────────────────────────────────────────────
-let _smsTree=null; // stored so smsNav can access it
+// SMS NAV STATE
+let _smsTree=null;
 
 function smsNav(level,key){
   const list=document.getElementById("sms-template-list");
@@ -2177,122 +2093,142 @@ function smsNav(level,key){
 
   if(level==="product"){
     list.innerHTML=
-      `<button onclick="window.open('sms:${phone}','_self');closeSMSPicker();" style="width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 16px;margin-bottom:10px;color:rgba(255,255,255,.8);font-size:14px;font-weight:800;touch-action:manipulation;text-align:left;display:flex;align-items:center;gap:10px">📱 <span>Open text — no template</span></button>`+
-      Object.entries(TREE).map(function([pk,prod]){
-        return`<button onclick="smsNav('stage','${pk}')" style="width:100%;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:14px;padding:16px;margin-bottom:8px;color:#fff;font-size:15px;font-weight:800;touch-action:manipulation;text-align:left;display:flex;align-items:center;gap:12px">${prod.icon}<span style="flex:1">${prod.label}</span><span style="color:rgba(255,255,255,.25);font-size:20px">›</span></button>`;
+      '<button onclick="window.open(\'sms:'+phone+'\',\'_self\');closeSMSPicker();" style="width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 16px;margin-bottom:10px;color:rgba(255,255,255,.8);font-size:14px;font-weight:800;touch-action:manipulation;text-align:left;display:flex;align-items:center;gap:10px">📱 <span>Open text — no template</span></button>'+
+      Object.entries(TREE).map(function(e){var pk=e[0],prod=e[1];
+        return'<button onclick="smsNav(\'stage\',\''+pk+'\')" style="width:100%;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:14px;padding:16px;margin-bottom:8px;color:#fff;font-size:15px;font-weight:800;touch-action:manipulation;text-align:left;display:flex;align-items:center;gap:12px">'+prod.icon+'<span style="flex:1">'+prod.label+'</span><span style="color:rgba(255,255,255,.25);font-size:20px">›</span></button>';
       }).join("")+
-      `<div style="margin-top:12px;border-top:1px solid rgba(45,37,80,.5);padding-top:12px">
-        <button onclick="generateAISMS()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.2),rgba(201,162,39,.1));border:1px solid rgba(124,58,237,.3);color:#a78bfa;font-size:14px;font-weight:800;touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:8px" id="ai-sms-btn">✨ Write targeted message with AI</button>
-        <div id="ai-sms-result" style="display:none;margin-top:10px">
-          <textarea id="ai-sms-ta" rows="4" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(124,58,237,.3);border-radius:12px;color:#fff;padding:12px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;line-height:1.5"></textarea>
-          <button onclick="sendAISMS()" style="width:100%;margin-top:8px;padding:12px;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#c9a227);border:none;color:#fff;font-size:14px;font-weight:800;touch-action:manipulation">Send →</button>
-        </div>
-      </div>`;
+      '<div style="margin-top:12px;border-top:1px solid rgba(45,37,80,.5);padding-top:12px">'+
+        '<button onclick="generateAISMS()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.2),rgba(201,162,39,.1));border:1px solid rgba(124,58,237,.3);color:#a78bfa;font-size:14px;font-weight:800;touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:8px" id="ai-sms-btn">✨ Write targeted message with AI</button>'+
+        '<div id="ai-sms-result" style="display:none;margin-top:10px">'+
+          '<textarea id="ai-sms-ta" rows="4" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(124,58,237,.3);border-radius:12px;color:#fff;padding:12px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;line-height:1.5"></textarea>'+
+          '<button onclick="sendAISMS()" style="width:100%;margin-top:8px;padding:12px;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#c9a227);border:none;color:#fff;font-size:14px;font-weight:800;touch-action:manipulation">Send →</button>'+
+        '</div>'+
+      '</div>';
   } else if(level==="stage"){
-    const prod=TREE[key];
+    var prod=TREE[key];
     list.innerHTML=
-      `<button onclick="smsNav('product',null)" style="margin-bottom:14px;background:none;border:none;color:#a78bfa;font-size:14px;font-weight:700;padding:0;touch-action:manipulation;display:flex;align-items:center;gap:4px">‹ Back</button>`+
-      `<div style="font-size:17px;font-weight:900;color:#fff;margin-bottom:14px">${prod.icon} ${prod.label}</div>`+
-      Object.entries(prod.stages).map(function([sk,stage]){
-        return`<button onclick="smsNav('templates','${key}:${sk}')" style="width:100%;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:14px;padding:14px 16px;margin-bottom:8px;color:#fff;font-size:14px;font-weight:800;touch-action:manipulation;text-align:left;display:flex;align-items:center;gap:12px">${stage.icon}<span style="flex:1">${stage.label}</span><span style="color:rgba(255,255,255,.25);font-size:20px">›</span></button>`;
+      '<button onclick="smsNav(\'product\',null)" style="margin-bottom:14px;background:none;border:none;color:#a78bfa;font-size:14px;font-weight:700;padding:0;touch-action:manipulation;display:flex;align-items:center;gap:4px">‹ Back</button>'+
+      '<div style="font-size:17px;font-weight:900;color:#fff;margin-bottom:14px">'+prod.icon+' '+prod.label+'</div>'+
+      Object.entries(prod.stages).map(function(e){var sk=e[0],stage=e[1];
+        return'<button onclick="smsNav(\'templates\',\''+key+':'+sk+'\')" style="width:100%;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:14px;padding:14px 16px;margin-bottom:8px;color:#fff;font-size:14px;font-weight:800;touch-action:manipulation;text-align:left;display:flex;align-items:center;gap:12px">'+stage.icon+'<span style="flex:1">'+stage.label+'</span><span style="color:rgba(255,255,255,.25);font-size:20px">›</span></button>';
       }).join("");
   } else if(level==="templates"){
-    const parts=key.split(":");
-    const stage=TREE[parts[0]].stages[parts[1]];
+    var parts=key.split(":");
+    var stage=TREE[parts[0]].stages[parts[1]];
     list.innerHTML=
-      `<button onclick="smsNav('stage','${parts[0]}')" style="margin-bottom:14px;background:none;border:none;color:#a78bfa;font-size:14px;font-weight:700;padding:0;touch-action:manipulation;display:flex;align-items:center;gap:4px">‹ Back</button>`+
-      `<div style="font-size:17px;font-weight:900;color:#fff;margin-bottom:14px">${stage.icon} ${stage.label}</div>`+
+      '<button onclick="smsNav(\'stage\',\''+parts[0]+'\')" style="margin-bottom:14px;background:none;border:none;color:#a78bfa;font-size:14px;font-weight:700;padding:0;touch-action:manipulation;display:flex;align-items:center;gap:4px">‹ Back</button>'+
+      '<div style="font-size:17px;font-weight:900;color:#fff;margin-bottom:14px">'+stage.icon+' '+stage.label+'</div>'+
       stage.templates.map(function(t,i){
-        const tid="smst_"+i+"_"+parts[1];
-        return`<div class="sms-card" id="${tid}" style="background:rgba(255,255,255,.04);border:1.5px solid rgba(45,37,80,.7);border-radius:14px;padding:13px 14px;margin-bottom:8px;touch-action:manipulation" onclick="selectSMSTemplate('${tid}',this)">
-          <div style="font-size:13px;font-weight:800;color:#fff;margin-bottom:5px">${t.l}</div>
-          <div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${t.b}</div>
-          <textarea class="sms-body-ta" style="display:none;width:100%;margin-top:10px;background:rgba(0,0,0,.3);border:1px solid rgba(124,58,237,.3);border-radius:10px;color:#fff;padding:10px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;line-height:1.5">${t.b}</textarea>
-          <button class="sms-send-btn" style="display:none;width:100%;margin-top:8px;padding:12px;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#c9a227);border:none;color:#fff;font-size:14px;font-weight:800;touch-action:manipulation" onclick="event.stopPropagation();sendTemplateSMS(this)">Send →</button>
-        </div>`;
+        var tid="smst_"+i+"_"+parts[1];
+        return'<div class="sms-card" id="'+tid+'" style="background:rgba(255,255,255,.04);border:1.5px solid rgba(45,37,80,.7);border-radius:14px;padding:13px 14px;margin-bottom:8px;touch-action:manipulation" onclick="selectSMSTemplate(\''+tid+'\',this)">'+
+          '<div style="font-size:13px;font-weight:800;color:#fff;margin-bottom:5px">'+t.l+'</div>'+
+          '<div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+t.b+'</div>'+
+          '<textarea class="sms-body-ta" style="display:none;width:100%;margin-top:10px;background:rgba(0,0,0,.3);border:1px solid rgba(124,58,237,.3);border-radius:10px;color:#fff;padding:10px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;line-height:1.5">'+t.b+'</textarea>'+
+          '<button class="sms-send-btn" style="display:none;width:100%;margin-top:8px;padding:12px;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#c9a227);border:none;color:#fff;font-size:14px;font-weight:800;touch-action:manipulation" onclick="event.stopPropagation();sendTemplateSMS(this)">Send →</button>'+
+        '</div>';
       }).join("");
   }
 }
 
 function openSMSPicker(ri){
   _smsIdx=ri;
-  const c=contacts[ri];
+  var c=contacts[ri];
   if(!c){toast("No contact");return;}
-  const phone=(c.phone||"").replace(/\D/g,"");
+  var phone=(c.phone||"").replace(/\D/g,"");
   if(!phone){toast("No phone number");return;}
-  const first=(c.name||"").split(" ")[0]||"there";
-  const bestOffer=c.approvals?(c.approvals.split("\n")[0].replace(/https?:\/\/\S+/g,"").trim()):"";
-  const parsedOffer=parseOffer(bestOffer);
+  var first=(c.name||"").split(" ")[0]||"there";
+  var biz=c.company||"your business";
+  var bestOffer=c.approvals?(c.approvals.split("\n")[0].replace(/https?:\/\/\S+/g,"").trim()):"";
+  var parsedOffer=parseOffer(bestOffer);
+  var amt=parsedOffer?parsedOffer.amount:(bestOffer||"the approved amount");
 
   _smsTree={
-    mca:{label:"MCA / Business Loan",icon:"💼",stages:{
+    mca:{label:"Working Capital (MCA)",icon:"💼",stages:{
       opener:{label:"Opener",icon:"👋",templates:[
-        {l:"New lead",b:first+" — we have some solid funding options for your business. When are you available for a quick call?"},
-        {l:"Missed connection",b:first+" — tried to reach you. We have funding available and I want to make sure you don't miss this window."},
-        {l:"Good morning",b:"Good morning! Got solid options for your business that could fund this week. What time works for a quick call today?"},
+        {l:"Quick opener",b:"Hi "+first+", it's Sam. I'm looking at your file for "+biz+" now. I can get this approved today without the usual broker runaround. What's your best email?"},
+        {l:"How much do you need?",b:"How much do you currently need for the business and what's the best email to reach you?"},
+        {l:"Available programs",b:"We offer Term Options, Lines of Credit, Consolidations, and more. We could even fund as soon as today. How much are you looking for and what's the best email?"},
+        {l:"UCC pre-approval",b:"This is a pre-approval based on the UCC filing on the business. I could have this approved for you today."},
+        {l:"Best email?",b:"What's the best email to send the required information to? I could have you approved within 2 hours and funded by end of today."},
+      ]},
+      app_sent:{label:"Application Sent",icon:"📋",templates:[
+        {l:"App sent",b:"Just sent that application over to your email. It's short and has a spot for you to upload your bank statements at the end. Get that finished now and I'll have my team start working on an approval immediately."},
+        {l:"Backup link",b:"If you don't see the email use this link to keep things moving: https://form.jotform.com/253154501377151 Once it's in I'll have an offer for you in about an hour."},
+        {l:"Tonight deadline",b:"Wanted to remind you about the funding app. If you get it done tonight I can line up offers by tomorrow and have money in your account the same day. https://form.jotform.com/253154501377151"},
+        {l:"End of day push",b:"If you get the application in today you can get the offer and even funded by end of day. Let me know if you need help with anything. https://form.jotform.com/253154501377151"},
+        {l:"I'm on standby",b:"I'm on standby. Send it whenever you can and I'll expedite this for you ASAP."},
+        {l:"Confirm received",b:"Received. Sending everything over to my team now. I'll be in touch soon."},
       ]},
       followup:{label:"Follow Up",icon:"🔄",templates:[
-        {l:"Still open",b:first+" — still have that offer open for you. These don't last long. Are you still looking?"},
-        {l:"Circling back",b:first+" — circling back. The offer is on the table but I need to know you want to move forward before I move on to the next file."},
-        {l:"Last reach out",b:first+" — this is my last reach out. If you're still interested let me know by end of day and I'll keep your file active."},
+        {l:"Did you submit?",b:"Hey "+first+" good morning. I didn't see your application this morning. Just want to make sure it didn't get lost. Did you submit?"},
+        {l:"Checking in",b:"Checking in to see if you still need the funding. What's the best email to send the application to? Would love to get this done and have funds wired by tomorrow."},
+        {l:"Not here to waste time",b:"Not here to waste your time. Just let me know what email to send the information to so we can make this happen for you today."},
+        {l:"New month refresh",b:"Hey "+first+" it's a new month. I need your updated bank statements so I can refresh your file. My underwriters are looking for a reason to improve the terms so let's get those over today."},
+        {l:"End of month push",b:"We're currently offering aggressive terms to close out the month. If you still need funds for the business now is the best time to apply. https://form.jotform.com/253145486709162"},
+        {l:"Been a while",b:"Hey it's been a while. You mentioned you were looking for capital. What's the best email to send the application to right now?"},
       ]},
-      docs:{label:"Docs Needed",icon:"📄",templates:[
-        {l:"Bank statements",b:first+" — to keep your file moving I need your last 3 months of business bank statements. Send them over and I'll get this submitted."},
-        {l:"Application",b:first+" — your application is the last thing holding this up. Takes 5 minutes. Once that's in I can get your file to underwriting today."},
-        {l:"Missing items",b:first+" — still need a couple items to complete your file. Send over what you have and I'll tell you exactly what's left."},
-        {l:"Call first",b:"Before I submit your file I need to go over a few things. Give me a call when you have 10 minutes."},
+      approved:{label:"Approval",icon:"✅",templates:[
+        {l:"Approval + call",b:"Great news. I got "+biz+" approved for "+amt+". Let's hop on a quick call so I can explain the early payment discounts — it'll save you a lot on the payback. You free now?"},
+        {l:"Approval ready",b:first+" approval came back. I have the details ready. When can you jump on a call so I can walk you through everything?"},
+        {l:"Great terms available",b:"Great news! I could have you approved and wired today with our best programs. The terms depend on your revenue, credit, industry and positions. My underwriter needs to look at the financials to lock in the terms but we're highly competitive and could fund same day."},
       ]},
-      approved:{label:"Approved",icon:"✅",templates:[
-        {l:"Approval ready",b:parsedOffer?first+" — you've been approved. "+parsedOffer.amount+" at "+parsedOffer.rate+" factor. This offer is time-sensitive — let's get it locked in.":first+" — approval came back. I have the details ready. When can you jump on a quick call?"},
-        {l:"Multiple offers",b:bestOffer?first+" — got a few offers back. Best one is "+bestOffer+". Let's connect so I can walk you through all your options.":first+" — got offers back on your file. Call me so I can walk you through your options."},
-        {l:"Early payoff discount",b:first+" — also want you to know we offer early payoff discounts. When you're ready to pay it off you won't be paying the full amount back."},
+      contract:{label:"Contracts",icon:"✍️",templates:[
+        {l:"Contracts sent (text 1)",b:"Just sent the contracts for "+amt+" to your email."},
+        {l:"Contracts sent (text 2)",b:"Signing doesn't lock you in for the deal yet. It just secures this specific offer while we finish the final steps. You can still change your mind anytime until we send the wire but this locks in your rate."},
+        {l:"Contract clarity",b:"Just wanted to clarify one thing. If these docs we sent over are signed it does not lock you in for the deal. There are still a few steps before we fund and you can change your mind anytime until we send the wire. But signing locks you in at this offer so it's to your benefit."},
+        {l:"Early payoff discount",b:"We also offer really nice early payment discounts. So whenever you're ready to pay this off we'll be applying discounts and you won't be paying the full amount back."},
+        {l:"Cold contract follow up",b:first+" I haven't seen those contracts come back yet. I can only hold this "+amt+" offer for so long before the funds are reallocated to the next file. Are we getting this funded today?"},
       ]},
-      contract:{label:"Signing / Closing",icon:"✍️",templates:[
-        {l:"Sign docs",b:first+" — contracts are out. Once you sign we can have the money in your account within 24 hours. Check your email — everything is there."},
-        {l:"No commitment",b:first+" — signing the agreement doesn't lock you in. You can still walk away before the wire goes out. But signing locks in your rate so nothing changes on you."},
-        {l:"Wire soon",b:first+" — get those docs signed and the wire goes out same day."},
-      ]},
-      renewal:{label:"Renewal",icon:"🔃",templates:[
-        {l:"Renewal ready",b:first+" — you're in a good position for a renewal. Based on your history we should be able to get you a better deal. Worth a quick call."},
-        {l:"More capital",b:first+" — you may qualify for additional capital on top of what you have now. Let me run the numbers."},
+      funded:{label:"Funded / Renewal",icon:"🎉",templates:[
+        {l:"Funds on the way",b:"Funds are on the way "+first+"! Glad we could get this done for "+biz+". Let me know when you see it hit the account."},
+        {l:"Renewal offer",b:"Hey "+first+" you've been solid on the payments. I just got the green light to offer you a renewal with better terms and a higher limit. How much do you need for the business right now?"},
       ]},
     }},
-    cc:{label:"Business Credit Cards",icon:"💳",stages:{
+    cc:{label:"0% Business Credit",icon:"💳",stages:{
       opener:{label:"Opener",icon:"👋",templates:[
-        {l:"150k at 0% APR",b:"Hey "+first+" — Sam here. Can get your business up to 150k at 0% APR. You interested?"},
-        {l:"No daily payments",b:"Hey "+first+", Sam here. Business credit cards up to 150k at 0% APR — no daily payments, no factor rates. Got a few mins?"},
+        {l:"Quick opener",b:"Hi "+first+", it's Sam. I have a 0% APR credit line available for your business. What's your credit score looking like? If it's 680+ we can move fast."},
+        {l:"Open to hearing it?",b:"Hey "+first+", if I could get you a $150k business credit line at 0% interest would you be open to hearing about it? Only thing needed is a 680+ credit score — but even if you're not there yet we can work around it."},
+        {l:"No daily payments",b:"Hey "+first+", Sam here. Business credit lines up to 150k at 0% APR — no daily payments, no factor rates. Got a few mins?"},
         {l:"Still available",b:first+" — that 150k at 0% APR is still on the table. You in?"},
-        {l:"Open to it?",b:first+" — if I could get you a $150k business credit line at 0% interest would you be open to hearing about it? Only need a 680+ credit score."},
       ]},
       qualify:{label:"Qualification",icon:"📊",templates:[
         {l:"Credit score",b:"What is your current credit score?"},
-        {l:"Available now",b:"You available for a quick 5-minute call right now?"},
-        {l:"Score workaround",b:first+" — even if your score isn't at 680 yet there's still a path. Let me know where you're at and I'll tell you exactly what we can do."},
+        {l:"Available for a call?",b:"You available for a quick call now or later today?"},
+        {l:"Score workaround",b:first+" even if your score isn't at 680 yet there's still a path. Let me know where you're at and I'll tell you exactly what we can do."},
       ]},
       trimerge:{label:"Credit Report",icon:"📋",templates:[
-        {l:"Pull Tri-Merge",b:first+" — next step is your Tri-Merge credit report so I can see exactly what we're working with. Create an account and send it over: creditheroscore.com"},
-        {l:"Report link",b:"Pull your report here and send it over: creditheroscore.com"},
-        {l:"Co-signer reports",b:first+" — have you and your co-signer both pull Tri-Merge reports and send them over: creditheroscore.com"},
-        {l:'Expand All tip',b:'When you download the PDF make sure to click Expand All first so I can see the full report.'},
-        {l:"Walk you through it",b:first+" — if you run into any issues pulling the report just let me know and I'll walk you through it."},
-        {l:"Score too low",b:first+" — your score isn't where it needs to be right now. Do you have a co-signer? If not let's talk about a plan to get there."},
+        {l:"Pull tri-merge",b:"Like we discussed I need to see your tri-merge report to see which lines we can hit. You can grab it at creditheroscore.com. Just download the PDF and text it here."},
+        {l:"Follow up on report",b:"Did you get a chance to pull that report? I have a window open with my underwriters and I'd rather get you in now while the 0% terms are still this strong."},
+        {l:"Co-signer reports",b:first+" have you and your co-signer both pull tri-merge reports and send them over. You can get them at creditheroscore.com."},
+        {l:"Expand All tip",b:"When you download the PDF make sure to click Expand All first so I can see the full report."},
+        {l:"Score too low",b:first+" your score isn't where it needs to be right now. Do you have a co-signer with a stronger profile? If not let's talk about a plan to get there."},
       ]},
       approved:{label:"Approved",icon:"✅",templates:[
-        {l:"Approved — strong",b:first+" — you got approved. I have the details ready. When can you jump on a quick call so I can walk you through it?"},
-        {l:"Time sensitive",b:first+" — approval came back. These offers have expiration windows so let's move on this today."},
+        {l:"Approval ready",b:first+" you got approved. I have the details ready. When can you jump on a quick call so I can walk you through it?"},
+        {l:"Time sensitive",b:first+" approval came back. These offers have expiration windows so let's move on this today."},
       ]},
-    }}
+    }},
+    post:{label:"Post Funding",icon:"🔃",stages:{
+      funded:{label:"Funded",icon:"🎉",templates:[
+        {l:"Funds on the way",b:"Funds are on the way "+first+"! Glad we could get this done for "+biz+". Let me know when you see it hit the account."},
+        {l:"Great working with you",b:first+" it was great working with you. Let me know if you need anything else down the road."},
+      ]},
+      renewal:{label:"Renewal",icon:"🔄",templates:[
+        {l:"Renewal offer",b:"Hey "+first+" you've been solid on the payments. I just got the green light to offer you a renewal with better terms and a higher limit. How much do you need for the business right now?"},
+        {l:"More capital",b:first+" you may qualify for additional capital on top of what you have. Worth a quick call to go over the numbers."},
+      ]},
+    }},
   };
 
-  $("sms-to-name").textContent="To: "+c.name+(c.company?" · "+c.company:"");
+  document.getElementById("sms-to-name").textContent="To: "+c.name+(c.company?" · "+c.company:"");
   smsNav("product",null);
-  $("sms-ov").style.display="flex";
+  document.getElementById("sms-ov").style.display="flex";
 }
 
 function selectSMSTemplate(tid,card){
-  const ta=card.querySelector(".sms-body-ta");
-  const btn=card.querySelector(".sms-send-btn");
-  const isOpen=ta.style.display!=="none";
+  var ta=card.querySelector(".sms-body-ta");
+  var btn=card.querySelector(".sms-send-btn");
+  var isOpen=ta.style.display!=="none";
   document.querySelectorAll(".sms-card").forEach(function(el){
     el.querySelector(".sms-body-ta").style.display="none";
     el.querySelector(".sms-send-btn").style.display="none";
@@ -2310,15 +2246,15 @@ function selectSMSTemplate(tid,card){
 
 function sendTemplateSMS(btn){
   if(_smsIdx===null)return;
-  const c=contacts[_smsIdx];
-  const phone=(c.phone||"").replace(/\D/g,"");
+  var c=contacts[_smsIdx];
+  var phone=(c.phone||"").replace(/\D/g,"");
   if(!phone)return;
-  const ta=btn.previousElementSibling;
-  const body=ta.value.trim();
+  var ta=btn.previousElementSibling;
+  var body=ta.value.trim();
   if(!body)return;
   window.open("sms:"+phone+"&body="+encodeURIComponent(body),"_self");
   closeSMSPicker();
-  logChange("sms",c,"SMS sent: "+body.slice(0,60)+(body.length>60?"…":""));
+  logChange("sms",c,"SMS: "+body.slice(0,60));
 }
 
 function sendCustomSMS(){}
@@ -2345,37 +2281,30 @@ async function generateAISMS(){
   const c=contacts[_smsIdx];
   if(!c)return;
   btn.textContent="✨ Writing…";btn.disabled=true;
-  const first=(c.name||"").split(" ")[0]||"there";
-  const statusLabel=(c.leadStatus||"").replace(/^[\d.]+\.?\s*/,"").trim();
-  const bestOffer=c.approvals?(c.approvals.split("\n")[0].replace(/https?:\/\/\S+/g,"").trim()):"";
   try{
     const res=await fetch("https://api.anthropic.com/v1/messages",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",max_tokens:250,
+        model:"claude-sonnet-4-20250514",max_tokens:300,
         messages:[{role:"user",content:
-`You are Sam, an MCA broker. Write a short natural SMS to ${first} (${c.company||"a merchant"}).
-
-Situation:
-- Lead status: ${statusLabel||"unknown"}
-- Notes: ${(c.notes||"none").slice(0,400)}
-- Wants: ${c.wants||"not specified"}
-- Credit score: ${c.credit||"unknown"}
-- Best offer: ${bestOffer||"none yet"}
-- Status note: ${c.status||""}
-
-Based on this situation, write the single most relevant message to send right now. Use their first name naturally. Keep it short, human, conversational — not salesy, not AI-sounding. No emojis unless it fits. Do not add preamble or explanation. Output only the SMS text.`
+          `Write a short, natural, non-AI-sounding SMS for an MCA broker named Sam to send to a merchant.`+
+          `\nContact name: ${c.name||"the merchant"}`+
+          `\nFirst name: ${(c.name||"").split(" ")[0]||"there"}`+
+          `\nLead status: ${c.leadStatus||"unknown"}`+
+          `\nNotes: ${(c.notes||"").slice(0,300)}`+
+          `\nWants: ${c.wants||""}`+
+          `\nBest offer: ${c.approvals?(c.approvals.split("\n")[0].replace(/https?:\/\/\S+/g,"").trim()):""}`+
+          `\nCredit: ${c.credit||""}`+
+          `\nContext: MCA (merchant cash advance) or business credit line.`+
+          `\nWrite ONLY the SMS message text, no quotes, no preamble. Keep it under 160 characters if possible. Sound human, not salesy.`
         }]
       })
     });
     const data=await res.json();
     const msg=data.content&&data.content[0]?data.content[0].text.trim():"";
-    if(msg&&result&&ta){
-      result.style.display="block";
-      ta.value=msg;
-      ta.style.height="auto";ta.style.height=ta.scrollHeight+"px";
-    } else toast("Could not generate — try again");
+    if(msg&&result&&ta){result.style.display="block";ta.value=msg;}
+    else toast("Could not generate message");
   }catch(e){toast("AI unavailable");}
   btn.textContent="✨ Write message with AI";btn.disabled=false;
 }
