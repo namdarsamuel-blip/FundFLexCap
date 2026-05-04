@@ -1087,6 +1087,10 @@ function renderCard(){
     <button class="card-bottom-btn gold" id="notes-btn-bottom">✎ Notes</button>
     <button class="card-bottom-btn" onclick="openInfoEdit(${idx})">⚙ Edit Info</button>
   </div>
+  ${c.approvals?`<div style="border-top:1px solid rgba(45,37,80,.6);padding:10px 12px">
+    <div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:8px">📋 All Offers — tap to copy</div>
+    ${c.approvals.split("\n").map(function(line){const l=line.trim();if(!l||l.startsWith("http"))return"";return`<button onclick="navigator.clipboard.writeText('${l.replace(/'/g,"\\'")}').then(function(){toast('Copied!');})" style="width:100%;text-align:left;padding:8px 10px;margin-bottom:5px;background:rgba(255,255,255,.04);border:1px solid rgba(45,37,80,.6);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;touch-action:manipulation;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${l}</span><span style="color:var(--sub);font-size:11px;flex-shrink:0">copy</span></button>`;}).join("")}
+  </div>`:""}
   <div style="padding:8px 12px 16px">
     <button onclick="saveToContacts(${idx})" style="width:100%;padding:10px;border-radius:10px;background:none;border:1px solid rgba(59,139,255,.2);color:rgba(96,165,250,.6);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;touch-action:manipulation">
       <span style="font-size:13px">👤</span> Save to iPhone Contacts
@@ -2059,13 +2063,19 @@ function showEndOfPipeline(which){
 function saveToContacts(ri){
   const ct=contacts[ri];if(!ct)return;
   const ph=(ct.phone||"").replace(/\D/g,"");
+  // Split name into first/last for proper iPhone contact display
+  const nameParts=(ct.name||"").trim().split(/\s+/);
+  const firstName=nameParts[0]||"";
+  const lastName=nameParts.slice(1).join(" ")||"";
   const vcard=[
     "BEGIN:VCARD","VERSION:3.0",
     "FN:"+(ct.name||""),
-    "ORG:"+(ct.company||""),
+    // N field: LastName;FirstName;Middle;Prefix;Suffix — put last name correctly so first name shows first on iPhone
+    "N:"+lastName+";"+firstName+";;;",
+    ct.company?"ORG:"+ct.company:"",
     ph?"TEL;TYPE=CELL:"+ph:"",
     ct.email?"EMAIL:"+ct.email:"",
-    ct.notes?"NOTE:"+(ct.notes.replace(/\n/g,"\\n")):"",
+    ct.notes?"NOTE:"+(ct.notes.replace(/\n/g,"\\n").slice(0,300)):"",
     "END:VCARD"
   ].filter(Boolean).join("\r\n");
   const blob=new Blob([vcard],{type:"text/vcard"});
