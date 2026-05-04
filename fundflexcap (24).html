@@ -248,21 +248,23 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
 </div>
 <div id="wait-strip" style="display:none"></div>
 <div id="sheet-switcher" style="display:none"></div>
-<div class="nav-bar" style="justify-content:space-between;padding:6px 10px">
+<div class="nav-bar" style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:6px 10px;gap:6px">
   <!-- LEFT: Reminder pill -->
-  <button id="reminder-pill" onclick="switchPipeline(pipeline==='reminder'?'active':'reminder')" style="display:none;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:800;border:1.5px solid rgba(124,58,237,.5);background:rgba(124,58,237,.15);color:#a78bfa;touch-action:manipulation;align-items:center;gap:5px;white-space:nowrap;transition:all .2s">🔔 <span id="rem-count">0</span></button>
-  <div id="rem-placeholder" style="width:8px;flex-shrink:0"></div>
-  <!-- CENTER: nav -->
+  <div style="display:flex;justify-content:flex-start">
+    <button id="reminder-pill" onclick="switchPipeline(pipeline==='reminder'?'active':'reminder')" style="display:none;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:800;border:1.5px solid rgba(124,58,237,.5);background:rgba(124,58,237,.15);color:#a78bfa;touch-action:manipulation;align-items:center;gap:5px;white-space:nowrap;transition:all .2s">🔔 <span id="rem-count">0</span></button>
+  </div>
+  <!-- CENTER: nav always centered -->
   <div style="display:flex;align-items:center;gap:8px">
     <button onclick="go(-1)" id="nav-prev" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0" ontouchend="event.preventDefault();go(-1)">‹</button>
     <span id="nav-count" class="nav-count">— / —</span>
     <button onclick="go(1)" id="nav-next" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0" ontouchend="event.preventDefault();go(1)">›</button>
   </div>
   <!-- RIGHT: Wait pill -->
-  <button id="wait-badge-pill" onclick="switchPipeline(pipeline==='wait'?'active':'wait')" style="display:none;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:800;border:1.5px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);color:#f59e0b;touch-action:manipulation;align-items:center;gap:5px;white-space:nowrap;transition:all .2s">
-    <span id="wait-badge-icon">⏱</span> <span id="wait-badge-label">Wait</span> · <span id="wait-badge-count">0</span>
-  </button>
-  <div id="wait-placeholder" style="width:8px;flex-shrink:0"></div>
+  <div style="display:flex;justify-content:flex-end">
+    <button id="wait-badge-pill" onclick="switchPipeline(pipeline==='wait'?'active':'wait')" style="display:none;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:800;border:1.5px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);color:#f59e0b;touch-action:manipulation;align-items:center;gap:5px;white-space:nowrap;transition:all .2s">
+      <span id="wait-badge-icon">⏱</span> <span id="wait-badge-label">Wait</span> · <span id="wait-badge-count">0</span>
+    </button>
+  </div>
 </div>
 <button id="prev-btn" class="desk-nav-btn left" onclick="go(-1)" title="Previous lead">‹</button>
 <button id="next-btn" class="desk-nav-btn right" onclick="go(1)" title="Next lead">›</button>
@@ -463,6 +465,30 @@ function buildCbHtml(c){
   </span>`;
 }
 
+
+function buildRemHtml(c){
+  const stored=localStorage.getItem(REM_KEY(c.row));
+  if(!stored){
+    return`<button class="cb-pill set" onclick="openReminderPicker(${c.row})" style="display:inline-flex;align-items:center;gap:5px">🔔 Set reminder</button>`;
+  }
+  const{due,label,fired}=JSON.parse(stored);
+  // If timer hasn't fired yet, show countdown; if fired, show "Due" state
+  const now=Date.now();
+  const diff=due-now;
+  const isDue=fired||diff<=0;
+  const borderColor=isDue?"rgba(52,211,153,.5)":"rgba(124,58,237,.5)";
+  const bgColor=isDue?"rgba(52,211,153,.1)":"rgba(124,58,237,.12)";
+  const textColor=isDue?"#34d399":"#a78bfa";
+  const countdownText=isDue?"Due now":fmtCountdown(due,"").replace(/^⏱\s*—?\s*/,"");
+  const dismissFn=pipeline==="reminder"?"clearReminder("+c.row+")":"openReminderPicker("+c.row+")";
+  return`<span style="display:inline-flex;align-items:center;border-radius:20px;overflow:hidden;border:1.5px solid ${borderColor};background:${bgColor}">
+    <span id="rd_${c.row}" onclick="${dismissFn}" style="border:none;padding:5px 10px 5px 12px;color:${textColor};font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap">🔔 ${label||"Reminder"} — ${countdownText}</span>
+    ${pipeline==="reminder"&&isDue
+      ?`<button onclick="event.stopPropagation();clearReminder(${c.row})" style="padding:0 10px;background:rgba(52,211,153,.15);border:none;border-left:1px solid rgba(52,211,153,.25);color:#34d399;font-size:11px;font-weight:800;height:100%;touch-action:manipulation;align-self:stretch;display:flex;align-items:center;white-space:nowrap">Done ✓</button>`
+      :`<button onclick="event.stopPropagation();clearReminder(${c.row})" style="padding:0 10px;background:rgba(255,255,255,.07);border:none;border-left:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.45);font-size:14px;font-weight:700;height:100%;touch-action:manipulation;align-self:stretch;display:flex;align-items:center">✕</button>`
+    }
+  </span>`;
+}
 
 function buildNoteBlocks(str){
   const container=$("note-blocks");container.innerHTML="";
@@ -1039,32 +1065,35 @@ function renderCard(){
   const statusDisplay=c.status&&c.status.startsWith("WAIT|")?"":c.status;
   const isOnWait = !!localStorage.getItem(CB_KEY(c.row));
   const isOnReminder = !!localStorage.getItem(REM_KEY(c.row));
-  // Status color applied to card as left border accent + subtle header tint
-  const accentColor=ss?ss.color:"rgba(201,162,39,.6)";
-  const accentBorder=ss?ss.border:"rgba(201,162,39,.3)";
-  const headerTint=ss?`background:linear-gradient(90deg,${ss.bg} 0%,transparent 100%)`:"";
-  wrap.innerHTML=`<div class="lead-card" style="border-left:3px solid ${isOnWait?"rgba(245,158,11,.6)":isOnReminder?"rgba(124,58,237,.6)":accentBorder}">
-  <div class="card-header" style="${headerTint}">
+  // Status color: prominent top bar + full header background tint
+  const accentBorder=ss?ss.border:"rgba(45,37,80,.6)";
+  const accentColor=ss?ss.color:"rgba(201,162,39,.5)";
+  const headerBg=ss?`background:linear-gradient(135deg,${ss.bg.replace("rgba(","rgba(").replace(/,[\d.]+\)$/,",0.22)")} 0%,rgba(15,12,35,1) 100%)`:"";
+  wrap.innerHTML=`<div class="lead-card" style="border:1.5px solid ${isOnWait?"rgba(245,158,11,.4)":isOnReminder?"rgba(124,58,237,.4)":accentBorder};overflow:hidden">
+  <div style="height:3px;background:${isOnWait?"rgba(245,158,11,.8)":isOnReminder?"rgba(124,58,237,.8)":accentColor}"></div>
+  <div class="card-header" style="${headerBg}">
     <div class="card-header-top">
-      <div class="avatar" style="background:linear-gradient(135deg,${col},${col}88)">${ini(c.name)}</div>
+      <div class="avatar" style="background:${ss?`linear-gradient(135deg,${ss.color},${ss.bg.replace(/,[\d.]+\)$/,',0.6)')})`:`linear-gradient(135deg,${col},${col}88)`}">${ini(c.name)}</div>
       <div class="name-block">
         <div class="lead-name">${c.name||"—"}</div>
         <div class="lead-company">${c.company||" "}</div>
         ${ph?`<a class="lead-phone" href="tel:${ph}"><span class="lead-phone-dot"></span>${fmtPhone(c.phone)}</a>`:`<span class="lead-phone" style="color:rgba(255,255,255,.25)">No phone</span>`}
         ${c.email?`<a class="lead-email" href="mailto:${c.email}"><span style="opacity:.5;font-size:10px">✉</span>${c.email}</a>`:""}
       </div>
-      <button class="pencil-btn" onclick="openInfoEdit(${idx})" title="Edit contact info">⚙</button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        <button class="pencil-btn" onclick="openInfoEdit(${idx})" title="Edit contact info">⚙</button>
+        ${c.credit?`<div style="background:rgba(201,162,39,.15);border:1.5px solid rgba(201,162,39,.35);border-radius:10px;padding:4px 10px;text-align:center;min-width:52px">
+          <div style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:rgba(201,162,39,.6);line-height:1">★ Score</div>
+          <div style="font-size:18px;font-weight:900;color:var(--gold);line-height:1.2;letter-spacing:-.5px">${c.credit}</div>
+        </div>`:""}
+      </div>
     </div>
     ${isOnWait?`<div style="background:rgba(240,68,68,.1);border-top:1px solid rgba(240,68,68,.2);padding:7px 16px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:900;color:#fca5a5;letter-spacing:.06em;text-transform:uppercase"><span style="font-size:14px">⛔</span> DO NOT CALL — WAIT ACTIVE</div>`:''}
-    ${isOnReminder?`<div style="background:rgba(124,58,237,.1);border-top:1px solid rgba(124,58,237,.2);padding:7px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;font-weight:900;color:#a78bfa;letter-spacing:.04em;text-transform:uppercase"><span>${(function(){const s=localStorage.getItem(REM_KEY(c.row));if(!s)return"🔔 REMINDER";const d=JSON.parse(s);return d.fired?"🔔 REMINDER DUE — tap Done to return":"🔔 REMINDER PENDING";}())}</span><span style="font-size:10px;font-weight:700;color:rgba(167,139,250,.7);text-transform:none">${(function(){const s=localStorage.getItem(REM_KEY(c.row));if(!s)return"";const d=JSON.parse(s);return d.label||"";}())}</span></div>`:""}
     <div class="card-meta-row">
       <span class="status-pill" onclick="openStatusPicker(${idx})" style="background:${badgeBg};border:1.5px solid ${badgeBdr};color:${badgeClr}${isOnWait?';opacity:.4;filter:grayscale(.5)':''}">● ${rawLabel||"Set status"}</span>
       ${nonWaitTags.map(t=>`<span class="tag-pill" style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);color:#a78bfa${isOnWait?';opacity:.4':''}">${t}</span>`).join("")}
       ${buildCbHtml(c)}
-      ${pipeline==='reminder'&&isOnReminder
-        ? `<button onclick="clearReminder(${c.row})" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:800;border:1.5px solid rgba(52,211,153,.5);background:rgba(52,211,153,.12);color:#34d399;touch-action:manipulation;white-space:nowrap">✓ Done — back to leads</button>`
-        : `<button onclick="openReminderPicker(${c.row})" style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid ${isOnReminder?"rgba(124,58,237,.6)":"rgba(45,37,80,.8)"};background:${isOnReminder?"rgba(124,58,237,.2)":"rgba(255,255,255,.04)"};color:${isOnReminder?"#a78bfa":"var(--sub)"};touch-action:manipulation;white-space:nowrap">🔔 ${isOnReminder?"Reminder":"Remind me"}</button>`
-      }
+      ${buildRemHtml(c)}
     </div>
     <div style="padding:0 16px 12px;display:flex;align-items:flex-start;gap:8px">
       <span style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);flex-shrink:0;padding-top:9px">Status</span>
@@ -1094,7 +1123,6 @@ function renderCard(){
       ${fi("DOB",c.dob)}
       ${fi("Industry",c.industry)}
       ${fi("Social",fmtSSN(c.social))}
-      ${fi("Approvals",c.approvals?(c.approvals.split("\n")[0].replace(/https?:\/\/\S+/g,"").trim()):"",false,true)}
     </div>
   </div>
   <div class="card-bottom">
@@ -1102,7 +1130,10 @@ function renderCard(){
     <button class="card-bottom-btn" onclick="openInfoEdit(${idx})">⚙ Edit Info</button>
   </div>
   ${c.approvals?`<div style="border-top:1px solid rgba(45,37,80,.6);padding:10px 12px">
-    <div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:8px">📋 All Offers — tap to copy</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">📋 All Offers</div>
+      <button onclick="(function(){const lines=${JSON.stringify(c.approvals)}.split('\\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('http')).join('\\n');navigator.clipboard.writeText(lines).then(function(){toast('All offers copied!');});})()" style="padding:5px 12px;border-radius:16px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.35);color:var(--gold);font-size:11px;font-weight:800;touch-action:manipulation;white-space:nowrap">Copy all</button>
+    </div>
     ${c.approvals.split("\n").map(function(line){const l=line.trim();if(!l||l.startsWith("http"))return"";return`<button onclick="navigator.clipboard.writeText('${l.replace(/'/g,"\\'")}').then(function(){toast('Copied!');})" style="width:100%;text-align:left;padding:8px 10px;margin-bottom:5px;background:rgba(255,255,255,.04);border:1px solid rgba(45,37,80,.6);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;touch-action:manipulation;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${l}</span><span style="color:var(--sub);font-size:11px;flex-shrink:0">copy</span></button>`;}).join("")}
   </div>`:""}
   <div style="padding:8px 12px 16px">
