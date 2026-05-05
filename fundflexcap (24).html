@@ -2498,13 +2498,7 @@ function smsNav(level,key){
       Object.entries(TREE).map(function(e){var pk=e[0],prod=e[1];
         return'<button onclick="smsNav(\'stage\',\''+pk+'\')" style="width:100%;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:14px;padding:16px;margin-bottom:8px;color:#fff;font-size:15px;font-weight:800;touch-action:manipulation;text-align:left;display:flex;align-items:center;gap:12px">'+prod.icon+'<span style="flex:1">'+prod.label+'</span><span style="color:rgba(255,255,255,.25);font-size:20px">›</span></button>';
       }).join("")+
-      '<div style="margin-top:12px;border-top:1px solid rgba(45,37,80,.5);padding-top:12px">'+
-        '<button onclick="generateAISMS()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.2),rgba(201,162,39,.1));border:1px solid rgba(124,58,237,.3);color:#a78bfa;font-size:14px;font-weight:800;touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:8px" id="ai-sms-btn">✨ Write targeted message with AI</button>'+
-        '<div id="ai-sms-result" style="display:none;margin-top:10px">'+
-          '<textarea id="ai-sms-ta" rows="4" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(124,58,237,.3);border-radius:12px;color:#fff;padding:12px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;line-height:1.5"></textarea>'+
-          '<button onclick="sendAISMS()" style="width:100%;margin-top:8px;padding:12px;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#c9a227);border:none;color:#fff;font-size:14px;font-weight:800;touch-action:manipulation">Send →</button>'+
-        '</div>'+
-      '</div>';
+      '<div style="margin-top:12px;border-top:1px solid rgba(45,37,80,.5);padding-top:12px"></div>';
   } else if(level==="stage"){
     var prod=TREE[key];
     list.innerHTML=
@@ -2681,33 +2675,51 @@ async function generateAISMS(){
   if(!btn)return;
   const c=contacts[_smsIdx];
   if(!c)return;
-  btn.textContent="✨ Writing…";btn.disabled=true;
+
+  // Gemini API key
+  let apiKey=localStorage.getItem("ffc_gemini_key")||"AIzaSyD24t28m8e8nGm7VS1efsqOp7oPAlTX6og";
+  if(!localStorage.getItem("ffc_gemini_key"))localStorage.setItem("ffc_gemini_key",apiKey);
+
+  btn.innerHTML="✨ Writing…";btn.disabled=true;
+  const first=(c.name||"").split(" ")[0]||"there";
+  const statusLabel=(c.leadStatus||"").replace(/^[\d.]+\.?\s*/,"").trim();
+  const bestOffer=c.approvals?(c.approvals.split("\n")[0].replace(/https?:\/\/\S+/g,"").trim()):"";
+  const prompt=`You are Sam, a confident MCA/business credit broker. Write ONE short natural SMS to ${first} (${c.company||"a merchant"}).
+
+Lead status: ${statusLabel||"unknown"}
+Notes: ${(c.notes||"none").slice(0,400)}
+Wants: ${c.wants||"not specified"}
+Credit score: ${c.credit||"unknown"}
+Best offer: ${bestOffer||"none yet"}
+Status note: ${c.status||""}
+
+Write the single most relevant message to send right now. Under 160 chars if possible. Human, confident, never salesy or begging. Output ONLY the SMS text, nothing else.`;
+
   try{
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",max_tokens:300,
-        messages:[{role:"user",content:
-          `Write a short, natural, non-AI-sounding SMS for an MCA broker named Sam to send to a merchant.`+
-          `\nContact name: ${c.name||"the merchant"}`+
-          `\nFirst name: ${(c.name||"").split(" ")[0]||"there"}`+
-          `\nLead status: ${c.leadStatus||"unknown"}`+
-          `\nNotes: ${(c.notes||"").slice(0,300)}`+
-          `\nWants: ${c.wants||""}`+
-          `\nBest offer: ${c.approvals?(c.approvals.split("\n")[0].replace(/https?:\/\/\S+/g,"").trim()):""}`+
-          `\nCredit: ${c.credit||""}`+
-          `\nContext: MCA (merchant cash advance) or business credit line.`+
-          `\nWrite ONLY the SMS message text, no quotes, no preamble. Keep it under 160 characters if possible. Sound human, not salesy.`
-        }]
-      })
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
     });
     const data=await res.json();
-    const msg=data.content&&data.content[0]?data.content[0].text.trim():"";
-    if(msg&&result&&ta){result.style.display="block";ta.value=msg;}
-    else toast("Could not generate message");
-  }catch(e){toast("AI unavailable");}
-  btn.textContent="✨ Write message with AI";btn.disabled=false;
+    if(data.error){
+      if(data.error.code===400||data.error.code===401){
+        localStorage.removeItem("ffc_gemini_key");
+        toast("Invalid API key — cleared. Tap AI again to re-enter.");
+      } else {
+        toast("Error: "+data.error.message);
+      }
+      btn.innerHTML="✨ Write message with AI";btn.disabled=false;return;
+    }
+    const msg=data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||"";
+    if(msg){
+      if(result)result.style.display="block";
+      if(ta){ta.value=msg;ta.style.height="auto";ta.style.height=ta.scrollHeight+"px";}
+    } else {
+      toast("Couldn't generate — try again");
+    }
+  }catch(e){toast("Network error: "+e.message);}
+  btn.innerHTML="✨ Write message with AI";btn.disabled=false;
 }
 
 /* BOOT — instant start, no waiting for network */
