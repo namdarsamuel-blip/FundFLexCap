@@ -1134,86 +1134,76 @@ function renderCard(){
   const accentColor=ss?ss.color:"rgba(201,162,39,.5)";
   const headerBg=ss?"background:linear-gradient(135deg,"+ss.bg.replace(/,[\d.]+\)$/,",0.22)")+" 0%,rgba(15,12,35,1) 100%)":"";
   const avatarBg=ss?"linear-gradient(135deg,"+ss.color+","+ss.bg.replace(/,[\d.]+\)$/,",0.6)")+")":`linear-gradient(135deg,${col},${col}88)`;
-  wrap.innerHTML=`<div class="lead-card" style="border:1.5px solid ${isOnWait?"rgba(245,158,11,.4)":isOnReminder?"rgba(245,158,11,.4)":accentBorder};overflow:hidden">
-  <div style="height:3px;background:${isOnWait?"rgba(245,158,11,.8)":isOnReminder?"rgba(245,158,11,.7)":accentColor}"></div>
-  <div class="card-header" style="${headerBg}">
-    <div class="card-header-top">
-      <div class="avatar" style="background:${avatarBg}">${ini(c.name)}</div>
-      <div class="name-block">
-        <div class="lead-name">${c.name||"—"}</div>
-        <div class="lead-company">${c.company||" "}</div>
-        ${ph?`<a class="lead-phone" href="tel:${ph}"><span class="lead-phone-dot"></span>${fmtPhone(c.phone)}</a>`:`<span class="lead-phone" style="color:rgba(255,255,255,.25)">No phone</span>`}
-        ${c.email?`<a class="lead-email" href="mailto:${c.email}"><span style="opacity:.5;font-size:10px">✉</span>${c.email}</a>`:""}
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
-        <button class="pencil-btn" onclick="openInfoEdit(${idx})" title="Edit contact info">⚙</button>
-        ${c.credit?`<div style="background:rgba(201,162,39,.15);border:1.5px solid rgba(201,162,39,.35);border-radius:10px;padding:4px 10px;text-align:center;min-width:52px">
-          <div style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:rgba(201,162,39,.6);line-height:1">★ Score</div>
-          <div style="font-size:18px;font-weight:900;color:var(--gold);line-height:1.2;letter-spacing:-.5px">${c.credit}</div>
-        </div>`:""}
-      </div>
-    </div>
-    ${isOnWait?`<div style="background:rgba(240,68,68,.1);border-top:1px solid rgba(240,68,68,.2);padding:7px 16px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:900;color:#fca5a5;letter-spacing:.06em;text-transform:uppercase"><span style="font-size:14px">⛔</span> DO NOT CALL — WAIT ACTIVE</div>`:''}
-    ${isOnReminder?`<div onclick="openReminderPicker(${c.row})" style="background:rgba(245,158,11,.07);border-top:2px solid rgba(245,158,11,.5);padding:9px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:16px">🔔</span>
-        <div>
-          <div style="font-size:11px;font-weight:800;color:#f59e0b;letter-spacing:.03em">${(function(){const s=localStorage.getItem(REM_KEY(c.row));if(!s)return"Reminder";const d=JSON.parse(s);return d.label||"Reminder";}())}</div>
-          <div style="font-size:10px;color:rgba(245,158,11,.6);margin-top:1px">${(function(){const s=localStorage.getItem(REM_KEY(c.row));if(!s)return"";const d=JSON.parse(s);const diff=d.due-Date.now();if(d.fired||diff<=0)return"Due now — tap to dismiss";const h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);return(h>0?h+"h ":"")+m+"m remaining";}())}</div>
-        </div>
-      </div>
-      <button onclick="event.stopPropagation();clearReminder(${c.row})" style="padding:5px 12px;border-radius:10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#f59e0b;font-size:12px;font-weight:700;touch-action:manipulation;white-space:nowrap">✕ Dismiss</button>
-    </div>`:""}
-    <div class="card-meta-row">
-      <span class="status-pill" onclick="openStatusPicker(${idx})" style="background:${badgeBg};border:1.5px solid ${badgeBdr};color:${badgeClr}${isOnWait?';opacity:.4;filter:grayscale(.5)':''}">● ${rawLabel||"Set status"}</span>
-      ${nonWaitTags.map(t=>`<span class="tag-pill" style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);color:#a78bfa${isOnWait?';opacity:.4':''}">${t}</span>`).join("")}
-      ${buildCbHtml(c)}
-      ${!isOnReminder?`<button onclick="openReminderPicker(${c.row})" class="cb-pill set" style="display:inline-flex;align-items:center;gap:5px">🔔 Set reminder</button>`:""}
-    </div>
-    <div style="padding:0 16px 12px;display:flex;align-items:flex-start;gap:8px">
-      <span style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);flex-shrink:0;padding-top:9px">Status</span>
-      <textarea id="status-j-input" rows="1" placeholder="Add a status note…"
-        style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(45,37,80,.8);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;font-weight:600;outline:none;resize:none;overflow:hidden;line-height:1.4;font-family:inherit;transition:border-color .15s;${isOnWait?'opacity:.4':''}"
-        onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='rgba(45,37,80,.8)'"
-      >${statusDisplay||""}</textarea>
-    </div>
-  </div>
-  <div class="cta-row" style="${isOnWait?'opacity:.25;pointer-events:none':''}">
-    <a class="btn-call${ph?"":" off"}" href="${ph?"tel:"+ph:"#"}">📞 Call</a>
-    <button class="btn-sms${ph?"":" off"}" onclick="${ph?`openSMSPicker(${idx})`:"void(0)"}" style="cursor:${ph?"pointer":"not-allowed"}">💬 Text</button>
-  </div>
-  <div class="notes-section" id="notes-tap" style="${isOnWait?'opacity:.5':''}">
-    <div class="section-label"><span>Notes</span><span style="color:var(--gold);font-size:10px;font-weight:700;text-transform:none;letter-spacing:0">✎ tap to edit</span></div>
-    ${notesHtml}
-  </div>
-  ${renderOfferCards(c.approvals)}
-  <div style="border-top:1px solid rgba(45,37,80,.6);border-bottom:1px solid rgba(45,37,80,.6);background:rgba(0,0,0,.15);${isOnWait?'opacity:.4':''}">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr">
-      ${fi("Credit Score",c.credit,true,false,"credit")}
-      ${fi("Revenue",c.revenue,true,false,"revenue")}
-      ${fi("Wants",c.wants,false,false,"wants")}
-      ${fi("DL / VC",c.dlVc,false,false,"dlVc")}
-      ${fi("Federal Tax",fmtEIN(c.federalTax),false,false,"federalTax")}
-      ${fi("Biz Date",c.businessDate,false,false,"businessDate")}
-      ${fi("DOB",c.dob,false,false,"dob")}
-      ${fi("Industry",c.industry,false,false,"industry")}
-      ${fi("Social",fmtSSN(c.social),false,false,"social")}
-    </div>
-  </div>
-  <div style="height:8px"></div>
-  ${c.approvals?`<div style="border-top:1px solid rgba(45,37,80,.6);padding:10px 12px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">📋 All Offers</div>
-      <button onclick="copyAllOffers(${idx})" style="padding:5px 12px;border-radius:16px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.35);color:var(--gold);font-size:11px;font-weight:800;touch-action:manipulation;white-space:nowrap">Copy all</button>
-    </div>
-    ${c.approvals.split("\n").map(function(line){const l=line.trim();if(!l||l.startsWith("http"))return"";return`<button onclick="copySingleOffer(${idx},'${l.replace(/'/g,"\\'").replace(/"/g,"&quot;")}')" style="width:100%;text-align:left;padding:8px 10px;margin-bottom:5px;background:rgba(255,255,255,.04);border:1px solid rgba(45,37,80,.6);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;touch-action:manipulation;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${l}</span><span style="color:var(--sub);font-size:11px;flex-shrink:0">copy</span></button>`;}).join("")}
-  </div>`:""}
-  <div style="padding:8px 12px 16px">
-    <button onclick="saveToContacts(${idx})" style="width:100%;padding:10px;border-radius:10px;background:none;border:1px solid rgba(59,139,255,.2);color:rgba(96,165,250,.6);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;touch-action:manipulation">
-      <span style="font-size:13px">👤</span> Save to iPhone Contacts
-    </button>
-  </div>
-  </div>`;
+  // Pre-compute all conditional HTML to avoid nested backtick issues on Safari/iOS
+  const htmlPhone=ph?('<a class="lead-phone" href="tel:'+ph+'"><span class="lead-phone-dot"></span>'+fmtPhone(c.phone)+'</a>'):'<span class="lead-phone" style="color:rgba(255,255,255,.25)">No phone</span>';
+  const htmlEmail=c.email?('<a class="lead-email" href="mailto:'+c.email+'"><span style="opacity:.5;font-size:10px">✉</span>'+c.email+'</a>'):'';
+  const htmlScore=c.credit?('<div style="background:rgba(201,162,39,.15);border:1.5px solid rgba(201,162,39,.35);border-radius:10px;padding:4px 10px;text-align:center;min-width:52px"><div style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:rgba(201,162,39,.6);line-height:1">★ Score</div><div style="font-size:18px;font-weight:900;color:var(--gold);line-height:1.2;letter-spacing:-.5px">'+c.credit+'</div></div>'):'';
+  const htmlWaitBanner=isOnWait?'<div style="background:rgba(240,68,68,.1);border-top:1px solid rgba(240,68,68,.2);padding:7px 16px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:900;color:#fca5a5;letter-spacing:.06em;text-transform:uppercase"><span style="font-size:14px">⛔</span> DO NOT CALL</div>':'';
+  const remStored=localStorage.getItem(REM_KEY(c.row));
+  const remData=remStored?JSON.parse(remStored):null;
+  const remLabel=remData?remData.label||"Reminder":"Reminder";
+  const remDiff=remData?remData.due-Date.now():0;
+  const remTime=remData?(remData.fired||remDiff<=0?"Due now":(Math.floor(remDiff/3600000)>0?Math.floor(remDiff/3600000)+"h ":"")+Math.floor((remDiff%3600000)/60000)+"m remaining"):"";
+  const htmlRemBanner=isOnReminder?('<div onclick="openReminderPicker('+c.row+')" style="background:rgba(245,158,11,.07);border-top:2px solid rgba(245,158,11,.5);padding:9px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">🔔</span><div><div style="font-size:11px;font-weight:800;color:#f59e0b">'+remLabel+'</div><div style="font-size:10px;color:rgba(245,158,11,.6);margin-top:1px">'+remTime+'</div></div></div><button onclick="event.stopPropagation();clearReminder('+c.row+')" style="padding:5px 12px;border-radius:10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#f59e0b;font-size:12px;font-weight:700;touch-action:manipulation">✕ Dismiss</button></div>'):'';
+  const htmlTags=nonWaitTags.map(function(t){return'<span class="tag-pill" style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);color:#a78bfa'+(isOnWait?';opacity:.4':'')+'">'+ t+'</span>';}).join('');
+  const htmlSetRem=isOnReminder?'':'<button onclick="openReminderPicker('+c.row+')" class="cb-pill set" style="display:inline-flex;align-items:center;gap:5px">🔔 Set reminder</button>';
+  const htmlSmsBtn=ph?('<button class="btn-sms" onclick="openSMSPicker('+idx+')">💬 Text</button>'):'<button class="btn-sms off" style="cursor:not-allowed">💬 Text</button>';
+  const htmlOffersBlock=(function(){if(!c.approvals)return'';const lines=c.approvals.split("\n").map(function(line){const l=line.trim();if(!l||l.startsWith("http"))return"";return'<button onclick="copySingleOffer('+idx+',this.dataset.offer)" data-offer="'+l.replace(/"/g,"&quot;")+'" style="width:100%;text-align:left;padding:8px 10px;margin-bottom:5px;background:rgba(255,255,255,.04);border:1px solid rgba(45,37,80,.6);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;touch-action:manipulation;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>'+l+'</span><span style="color:var(--sub);font-size:11px;flex-shrink:0">copy</span></button>';}).join("");return'<div style="border-top:1px solid rgba(45,37,80,.6);padding:10px 12px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">📋 All Offers</div><button onclick="copyAllOffers('+idx+')" style="padding:5px 12px;border-radius:16px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.35);color:var(--gold);font-size:11px;font-weight:800;touch-action:manipulation">Copy all</button></div>'+lines+'</div>';}());
+
+  wrap.innerHTML=
+    '<div class="lead-card" style="border:1.5px solid '+(isOnWait||isOnReminder?"rgba(245,158,11,.4)":accentBorder)+';overflow:hidden">'
+    +'<div style="height:3px;background:'+(isOnWait?"rgba(245,158,11,.8)":isOnReminder?"rgba(245,158,11,.7)":accentColor)+'"></div>'
+    +'<div class="card-header" style="'+headerBg+'">'
+      +'<div class="card-header-top">'
+        +'<div class="avatar" style="background:'+avatarBg+'">'+ini(c.name)+'</div>'
+        +'<div class="name-block">'
+          +'<div class="lead-name">'+(c.name||"—")+'</div>'
+          +'<div class="lead-company">'+(c.company||" ")+'</div>'
+          +htmlPhone+htmlEmail
+        +'</div>'
+        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">'
+          +'<button class="pencil-btn" onclick="openInfoEdit('+idx+')" title="Edit contact info">⚙</button>'
+          +htmlScore
+        +'</div>'
+      +'</div>'
+      +htmlWaitBanner+htmlRemBanner
+      +'<div class="card-meta-row">'
+        +'<span class="status-pill" onclick="openStatusPicker('+idx+')" style="background:'+badgeBg+';border:1.5px solid '+badgeBdr+';color:'+badgeClr+(isOnWait?';opacity:.4;filter:grayscale(.5)':'')+'">&bull; '+(rawLabel||"Set status")+'</span>'
+        +htmlTags+buildCbHtml(c)+htmlSetRem
+      +'</div>'
+      +'<div style="padding:0 16px 12px;display:flex;align-items:flex-start;gap:8px">'
+        +'<span style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);flex-shrink:0;padding-top:9px">Status</span>'
+        +'<textarea id="status-j-input" rows="1" placeholder="Add a status note..." style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(45,37,80,.8);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;font-weight:600;outline:none;resize:none;overflow:hidden;line-height:1.4;font-family:inherit;'+(isOnWait?'opacity:.4':'')+'" onfocus="this.style.borderColor=&apos;var(--gold)&apos;" onblur="this.style.borderColor=&apos;rgba(45,37,80,.8)&apos;">'+(statusDisplay||'')+'</textarea>'
+      +'</div>'
+    +'</div>'
+    +'<div class="cta-row" style="'+(isOnWait?'opacity:.25;pointer-events:none':'')+'">'
+      +'<a class="btn-call'+(ph?"":" off")+'" href="'+(ph?"tel:"+ph:"#")+'">📞 Call</a>'
+      +htmlSmsBtn
+    +'</div>'
+    +'<div class="notes-section" id="notes-tap" style="'+(isOnWait?'opacity:.5':'')+'">'
+      +'<div class="section-label"><span>Notes</span><span style="color:var(--gold);font-size:10px;font-weight:700;text-transform:none;letter-spacing:0">✎ tap to edit</span></div>'
+      +notesHtml
+    +'</div>'
+    +renderOfferCards(c.approvals)
+    +'<div style="border-top:1px solid rgba(45,37,80,.6);border-bottom:1px solid rgba(45,37,80,.6);background:rgba(0,0,0,.15);'+(isOnWait?'opacity:.4':'')+'">'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr">'
+        +fi("Credit Score",c.credit,true,false,"credit")
+        +fi("Revenue",c.revenue,true,false,"revenue")
+        +fi("Wants",c.wants,false,false,"wants")
+        +fi("DL / VC",c.dlVc,false,false,"dlVc")
+        +fi("Federal Tax",fmtEIN(c.federalTax),false,false,"federalTax")
+        +fi("Biz Date",c.businessDate,false,false,"businessDate")
+        +fi("DOB",c.dob,false,false,"dob")
+        +fi("Industry",c.industry,false,false,"industry")
+        +fi("Social",fmtSSN(c.social),false,false,"social")
+      +'</div>'
+    +'</div>'
+    +'<div style="height:8px"></div>'
+    +htmlOffersBlock
+    +'<div style="padding:8px 12px 16px">'
+      +'<button onclick="saveToContacts('+idx+')" style="width:100%;padding:10px;border-radius:10px;background:none;border:1px solid rgba(59,139,255,.2);color:rgba(96,165,250,.6);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;touch-action:manipulation"><span style="font-size:13px">👤</span> Save to iPhone Contacts</button>'
+    +'</div>'
+    +'</div>';
   setTimeout(()=>{
     const nt=$("notes-tap");if(nt&&!isOnWait)nt.onclick=()=>openEdit(idx);
     // Status note textarea auto-resize + save on blur
