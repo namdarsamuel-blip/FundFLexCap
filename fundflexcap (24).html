@@ -1089,6 +1089,17 @@ function renderCard(){
       </div>
     </div>
     ${isOnWait?`<div style="background:rgba(240,68,68,.1);border-top:1px solid rgba(240,68,68,.2);padding:7px 16px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:900;color:#fca5a5;letter-spacing:.06em;text-transform:uppercase"><span style="font-size:14px">⛔</span> DO NOT CALL — WAIT ACTIVE</div>`:''}
+    ${isOnReminder?`<div style="background:linear-gradient(90deg,rgba(124,58,237,.25),rgba(124,58,237,.08));border-top:2px solid rgba(124,58,237,.5);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px">🔔</span>
+        <div>
+          <div style="font-size:12px;font-weight:900;color:#a78bfa;letter-spacing:.04em;text-transform:uppercase;line-height:1">Reminder</div>
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-top:2px">${(function(){const s=localStorage.getItem(REM_KEY(c.row));if(!s)return"";const d=JSON.parse(s);return d.label||"";}())}</div>
+          <div style="font-size:11px;color:rgba(167,139,250,.6);margin-top:1px">${(function(){const s=localStorage.getItem(REM_KEY(c.row));if(!s)return"";const d=JSON.parse(s);if(!d.due)return"";const diff=d.due-Date.now();if(d.fired||diff<=0)return"Due now";const h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);return h>0?h+"h "+m+"m remaining":m+"m remaining";}())}</div>
+        </div>
+      </div>
+      <button onclick="clearReminder(${c.row})" style="padding:6px 12px;border-radius:12px;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.4);color:#a78bfa;font-size:12px;font-weight:800;touch-action:manipulation;white-space:nowrap;flex-shrink:0">✕ Dismiss</button>
+    </div>`:''}
     <div class="card-meta-row">
       <span class="status-pill" onclick="openStatusPicker(${idx})" style="background:${badgeBg};border:1.5px solid ${badgeBdr};color:${badgeClr}${isOnWait?';opacity:.4;filter:grayscale(.5)':''}">● ${rawLabel||"Set status"}</span>
       ${nonWaitTags.map(t=>`<span class="tag-pill" style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);color:#a78bfa${isOnWait?';opacity:.4':''}">${t}</span>`).join("")}
@@ -1132,9 +1143,9 @@ function renderCard(){
   ${c.approvals?`<div style="border-top:1px solid rgba(45,37,80,.6);padding:10px 12px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">📋 All Offers</div>
-      <button onclick="(function(){const lines=${JSON.stringify(c.approvals)}.split('\\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('http')).join('\\n');navigator.clipboard.writeText(lines).then(function(){toast('All offers copied!');});})()" style="padding:5px 12px;border-radius:16px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.35);color:var(--gold);font-size:11px;font-weight:800;touch-action:manipulation;white-space:nowrap">Copy all</button>
+      <button onclick="copyAllOffers(${idx})" style="padding:5px 12px;border-radius:16px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.35);color:var(--gold);font-size:11px;font-weight:800;touch-action:manipulation;white-space:nowrap">Copy all</button>
     </div>
-    ${c.approvals.split("\n").map(function(line){const l=line.trim();if(!l||l.startsWith("http"))return"";return`<button onclick="navigator.clipboard.writeText('${l.replace(/'/g,"\\'")}').then(function(){toast('Copied!');})" style="width:100%;text-align:left;padding:8px 10px;margin-bottom:5px;background:rgba(255,255,255,.04);border:1px solid rgba(45,37,80,.6);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;touch-action:manipulation;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${l}</span><span style="color:var(--sub);font-size:11px;flex-shrink:0">copy</span></button>`;}).join("")}
+    ${c.approvals.split("\n").map(function(line){const l=line.trim();if(!l||l.startsWith("http"))return"";return`<button onclick="copySingleOffer(${idx},'${l.replace(/'/g,"\\'").replace(/"/g,"&quot;")}')" style="width:100%;text-align:left;padding:8px 10px;margin-bottom:5px;background:rgba(255,255,255,.04);border:1px solid rgba(45,37,80,.6);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;touch-action:manipulation;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${l}</span><span style="color:var(--sub);font-size:11px;flex-shrink:0">copy</span></button>`;}).join("")}
   </div>`:""}
   <div style="padding:8px 12px 16px">
     <button onclick="saveToContacts(${idx})" style="width:100%;padding:10px;border-radius:10px;background:none;border:1px solid rgba(59,139,255,.2);color:rgba(96,165,250,.6);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;touch-action:manipulation">
@@ -1382,8 +1393,17 @@ function startTick(){
           const sh=currentSheet();
           fetch(sh.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
             body:JSON.stringify({action:"clearWait",sheet:sh.tab,row:ct.row})});
-          sendNotification("📞 Time to call — "+(ct.name||"Lead"),(ct.company||""),"expire_"+ct.row);
-          toast("⏰ "+(ct.name||"Lead")+" — time to call!");
+          // Auto-set a reminder so the lead returns to main pool with an obvious "ready to call" flag
+          const remLabel="Wait expired — ready to call";
+          localStorage.setItem(REM_KEY(ct.row),JSON.stringify({due:Date.now(),label:remLabel,fired:true}));
+          if(c){
+            const dStr=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})+" at "+new Date().toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+            c.reminder="["+remLabel+"] due "+dStr;saveC();
+            fetch(sh.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+              body:JSON.stringify({action:"updateCell",sheet:sh.tab,row:ct.row,field:"reminder",value:c.reminder})});
+          }
+          sendNotification("📞 "+( ct.name||"Lead")+" is back — time to call",(ct.company||"")+" — wait expired","expire_"+ct.row);
+          toast("📞 "+(ct.name||"Lead")+" — wait over, reminder set!");
         }
       }
 
@@ -1827,7 +1847,8 @@ function getPipeline(){
     });
   }
   if(pipeline==='reminder'){
-    return contacts.filter(function(ct){return isReminded(ct)&&!isWaiting(ct);}).sort(function(a,b){
+    // Reminder view: show all leads that have a reminder set (still also in active)
+    return contacts.filter(function(ct){return isReminded(ct);}).sort(function(a,b){
       const da=JSON.parse(localStorage.getItem(REM_KEY(a.row))||'{"due":9e15}').due;
       const db=JSON.parse(localStorage.getItem(REM_KEY(b.row))||'{"due":9e15}').due;
       return da-db;
@@ -1835,13 +1856,13 @@ function getPipeline(){
   }
   if(pipeline==='filtered'&&activeStatusFilter&&activeStatusFilter!=='all'){
     return contacts.filter(function(ct){
-      if(isWaiting(ct)||isReminded(ct))return false;
+      if(isWaiting(ct))return false;
       const label=(ct.leadStatus||"").replace(/^[\d.]+\.?\s*/,"").trim();
       return label===activeStatusFilter;
     });
   }
-  // Active: exclude waiting AND reminded leads
-  return contacts.filter(function(ct){return !isWaiting(ct)&&!isReminded(ct);});
+  // Active: only exclude waiting leads — reminded leads STAY in main pool
+  return contacts.filter(function(ct){return !isWaiting(ct);});
 }
 
 function clearPipelineFilter(){
@@ -1991,9 +2012,8 @@ function clearReminder(row){
   fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
     body:JSON.stringify({action:"updateCell",sheet:s.tab,row,field:"reminder",value:""})});
   if(pipeline==="reminder"){
-    const remaining=contacts.filter(function(ct){return isReminded(ct)&&!isWaiting(ct);});
-    if(!remaining.length){pipeline="active";positionOnFirstActive();toast("No more reminders — back to active");}
-    else{const list=getPipeline();idx=contacts.indexOf(list[0]);saveC();}
+    const remaining=contacts.filter(function(ct){return isReminded(ct);});
+    if(!remaining.length){pipeline="active";toast("No more reminders");}
   }
   renderAll();
 }
@@ -2241,6 +2261,16 @@ function showEndOfPipeline(which){
 })();
 
 // ── SAVE TO IPHONE CONTACTS ──────────────────────────────────────────────────
+function copyAllOffers(ri){
+  const c=contacts[ri];if(!c||!c.approvals)return;
+  const lines=c.approvals.split("\n").map(function(l){return l.trim();}).filter(function(l){return l&&!l.startsWith("http");}).join("\n");
+  navigator.clipboard.writeText(lines).then(function(){toast("All offers copied!");});
+}
+
+function copySingleOffer(ri,text){
+  navigator.clipboard.writeText(text).then(function(){toast("Copied!");});
+}
+
 function saveToContacts(ri){
   const ct=contacts[ri];if(!ct)return;
   const ph=(ct.phone||"").replace(/\D/g,"");
