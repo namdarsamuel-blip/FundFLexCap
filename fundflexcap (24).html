@@ -1093,15 +1093,21 @@ function renderCard(){
       </div>
     </div>
     ${isOnWait?`<div style="background:rgba(240,68,68,.1);border-top:1px solid rgba(240,68,68,.2);padding:7px 16px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:900;color:#fca5a5;letter-spacing:.06em;text-transform:uppercase"><span style="font-size:14px">⛔</span> DO NOT CALL — WAIT ACTIVE</div>`:''}
-    ${isOnReminder?`<div onclick="openReminderPicker(${c.row})" style="background:rgba(245,158,11,.07);border-top:2px solid rgba(245,158,11,.5);padding:7px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer">
-      <div style="display:flex;align-items:center;gap:8px"><span style="font-size:15px">🔔</span><span style="font-size:12px;font-weight:700;color:#f59e0b">${(function(){const s=localStorage.getItem(REM_KEY(c.row));if(!s)return"Reminder";const d=JSON.parse(s);const diff=d.due-Date.now();const t=d.fired||diff<=0?"Due now":Math.floor(diff/3600000)+"h "+Math.floor((diff%3600000)/60000)+"m";return(d.label||"Reminder")+" · "+t;})()}</span></div>
-      <button onclick="event.stopPropagation();clearReminder(${c.row})" style="padding:4px 10px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);font-size:12px;font-weight:700;touch-action:manipulation">✕</button>
+    ${isOnReminder?`<div onclick="openReminderPicker(${c.row})" style="background:rgba(245,158,11,.07);border-top:2px solid rgba(245,158,11,.5);padding:9px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">🔔</span>
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#f59e0b;letter-spacing:.03em">${(function(){const s=localStorage.getItem(REM_KEY(c.row));if(!s)return"Reminder";const d=JSON.parse(s);return d.label||"Reminder";}())}</div>
+          <div style="font-size:10px;color:rgba(245,158,11,.6);margin-top:1px">${(function(){const s=localStorage.getItem(REM_KEY(c.row));if(!s)return"";const d=JSON.parse(s);const diff=d.due-Date.now();if(d.fired||diff<=0)return"Due now — tap to dismiss";const h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);return(h>0?h+"h ":"")+m+"m remaining";}())}</div>
+        </div>
+      </div>
+      <button onclick="event.stopPropagation();clearReminder(${c.row})" style="padding:5px 12px;border-radius:10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#f59e0b;font-size:12px;font-weight:700;touch-action:manipulation;white-space:nowrap">✕ Dismiss</button>
     </div>`:""}
     <div class="card-meta-row">
       <span class="status-pill" onclick="openStatusPicker(${idx})" style="background:${badgeBg};border:1.5px solid ${badgeBdr};color:${badgeClr}${isOnWait?';opacity:.4;filter:grayscale(.5)':''}">● ${rawLabel||"Set status"}</span>
       ${nonWaitTags.map(t=>`<span class="tag-pill" style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);color:#a78bfa${isOnWait?';opacity:.4':''}">${t}</span>`).join("")}
       ${buildCbHtml(c)}
-      ${buildRemHtml(c)}
+      ${!isOnReminder?`<button onclick="openReminderPicker(${c.row})" class="cb-pill set" style="display:inline-flex;align-items:center;gap:5px">🔔 Set reminder</button>`:""}
     </div>
     <div style="padding:0 16px 12px;display:flex;align-items:flex-start;gap:8px">
       <span style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);flex-shrink:0;padding-top:9px">Status</span>
@@ -1981,12 +1987,15 @@ function openReminderPicker(row){
 function setReminder(row,ms,specificTime){
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
   const labelEl=document.getElementById("rem-label-input");
-  const label=(labelEl?labelEl.value.trim():"")|| "Reminder";
-  const due=specificTime||Date.now()+ms;
-  // Always save with fired=false initially
-  localStorage.setItem(REM_KEY(row),JSON.stringify({due,label,fired:false}));
-  // Write to col M on sheet
-  const dueDate=new Date(due);
+  const label=(labelEl?labelEl.value.trim():"");
+  if(!label){
+    if(labelEl){labelEl.style.borderColor="#f87171";labelEl.focus();labelEl.placeholder="Please add a note first…";}
+    toast("Add a note first");return;
+  }
+  // due=0 means "note only, no timer"
+  const due=(ms===0&&!specificTime)?0:(specificTime||Date.now()+ms);
+  localStorage.setItem(REM_KEY(row),JSON.stringify({due:due||Date.now(),label,fired:due===0||due<=Date.now()}));
+  const dueDate=due?new Date(due):new Date();
   const dueStr=dueDate.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})+" at "+dueDate.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
   const remStr="["+label+"] due "+dueStr;
   const c=contacts.find(x=>x.row===row);
