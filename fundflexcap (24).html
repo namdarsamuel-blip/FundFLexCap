@@ -1055,10 +1055,11 @@ function renderCard(){
   const nonWaitTags=tagList.filter(t=>t.toLowerCase()!=="wait");
   const notesParas=c.notes?c.notes.split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean):[];
   const notesHtml=notesParas.length?notesParas.map(p=>`<div class="note-para">${p}</div>`).join(""):`<div class="notes-empty"><span>No notes yet</span><span class="add-note-hint">+ Add note</span></div>`;
-  function fi(label,val,hi=false,full=false){
+  function fi(label,val,hi=false,full=false,field=""){
     const style=full?"grid-column:1/-1":"";
-    return`<div style="${style};padding:8px 6px;border-bottom:1px solid rgba(45,37,80,.5);border-right:1px solid rgba(45,37,80,.5);text-align:center">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);margin-bottom:2px">${label}</div>
+    const tap=field?`onclick="inlineEditField(${idx},'${field}','${label}',this)"`:"";
+    return`<div ${tap} style="${style};padding:8px 6px;border-bottom:1px solid rgba(45,37,80,.5);border-right:1px solid rgba(45,37,80,.5);text-align:center;${field?"cursor:pointer":""}">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);margin-bottom:2px">${label}${field?'<span style="color:rgba(255,255,255,.2);font-size:8px;margin-left:3px">✎</span>':''}</div>
       <div style="font-size:13px;font-weight:${hi?800:600};color:${hi?"var(--gold)":"var(--text)"};${!val?"opacity:.3":""}line-height:1.2;word-break:break-word">${val||"—"}</div>
     </div>`;
   }
@@ -1125,20 +1126,20 @@ function renderCard(){
   ${renderOfferCards(c.approvals)}
   <div style="border-top:1px solid rgba(45,37,80,.6);border-bottom:1px solid rgba(45,37,80,.6);background:rgba(0,0,0,.15);${isOnWait?'opacity:.4':''}">
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr">
-      ${fi("Credit Score",c.credit,true)}
-      ${fi("Revenue",c.revenue,true)}
-      ${fi("Wants",c.wants)}
-      ${fi("DL / VC",c.dlVc)}
-      ${fi("Federal Tax",fmtEIN(c.federalTax))}
-      ${fi("Biz Date",c.businessDate)}
-      ${fi("DOB",c.dob)}
-      ${fi("Industry",c.industry)}
-      ${fi("Social",fmtSSN(c.social))}
+      ${fi("Credit Score",c.credit,true,false,"credit")}
+      ${fi("Revenue",c.revenue,true,false,"revenue")}
+      ${fi("Wants",c.wants,false,false,"wants")}
+      ${fi("DL / VC",c.dlVc,false,false,"dlVc")}
+      ${fi("Federal Tax",fmtEIN(c.federalTax),false,false,"federalTax")}
+      ${fi("Biz Date",c.businessDate,false,false,"businessDate")}
+      ${fi("DOB",c.dob,false,false,"dob")}
+      ${fi("Industry",c.industry,false,false,"industry")}
+      ${fi("Social",fmtSSN(c.social),false,false,"social")}
     </div>
   </div>
   <div class="card-bottom">
     <button class="card-bottom-btn gold" id="notes-btn-bottom">✎ Notes</button>
-    <button class="card-bottom-btn" onclick="openInfoEdit(${idx})">⚙ Edit Info</button>
+    <button class="card-bottom-btn" onclick="openInfoEdit(${idx})">⚙ Contact Info</button>
   </div>
   ${c.approvals?`<div style="border-top:1px solid rgba(45,37,80,.6);padding:10px 12px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -2261,6 +2262,70 @@ function showEndOfPipeline(which){
 })();
 
 // ── SAVE TO IPHONE CONTACTS ──────────────────────────────────────────────────
+function inlineEditField(ri,field,label,el){
+  // Remove any existing inline editor
+  const existing=document.getElementById("inline-edit-pop");
+  if(existing){existing.remove();if(existing._field===field)return;}
+
+  const c=contacts[ri];
+  if(!c)return;
+  // Raw value (before formatting)
+  const rawVal=c[field]||"";
+
+  const pop=document.createElement("div");
+  pop.id="inline-edit-pop";
+  pop._field=field;
+  pop.style.cssText="position:fixed;left:50%;transform:translateX(-50%);background:#1a1040;border:1.5px solid rgba(124,58,237,.5);border-radius:16px;padding:14px 16px;z-index:200;min-width:260px;max-width:90vw;box-shadow:0 8px 40px rgba(0,0,0,.7)";
+
+  pop.innerHTML=`
+    <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#a78bfa;margin-bottom:8px">${label}</div>
+    <input id="inline-edit-input" value="${rawVal.replace(/"/g,'&quot;')}" placeholder="Enter ${label}…"
+      style="width:100%;padding:10px 12px;background:rgba(255,255,255,.08);border:1.5px solid rgba(124,58,237,.4);border-radius:10px;color:#fff;font-size:15px;box-sizing:border-box;outline:none;font-family:inherit"
+      onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='rgba(124,58,237,.4)'"/>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button onclick="saveInlineField(${ri},'${field}')" style="flex:1;padding:10px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#c9a227);border:none;color:#fff;font-size:14px;font-weight:800;touch-action:manipulation">Save</button>
+      <button onclick="document.getElementById('inline-edit-pop').remove()" style="padding:10px 14px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:14px;font-weight:700;touch-action:manipulation">✕</button>
+    </div>`;
+
+  // Position below the tapped element
+  const rect=el.getBoundingClientRect();
+  const top=Math.min(rect.bottom+6, window.innerHeight-200);
+  pop.style.top=top+"px";
+
+  document.body.appendChild(pop);
+  setTimeout(function(){
+    const inp=document.getElementById("inline-edit-input");
+    if(inp){inp.focus();inp.select();}
+  },50);
+
+  // Close on outside tap
+  setTimeout(function(){
+    document.addEventListener("touchstart",function close(e){
+      if(!pop.contains(e.target)){pop.remove();document.removeEventListener("touchstart",close);}
+    });
+    document.addEventListener("mousedown",function close(e){
+      if(!pop.contains(e.target)){pop.remove();document.removeEventListener("mousedown",close);}
+    });
+  },100);
+}
+
+function saveInlineField(ri,field){
+  const inp=document.getElementById("inline-edit-input");
+  if(!inp)return;
+  const val=inp.value.trim();
+  const c=contacts[ri];
+  if(!c)return;
+  c[field]=val;
+  saveC();
+  // Push to sheet
+  const s=currentSheet();
+  fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+    body:JSON.stringify({action:"updateCell",sheet:s.tab,row:c.row,field,value:val})});
+  document.getElementById("inline-edit-pop").remove();
+  renderCard();
+  toast("Saved");
+}
+
 function copyAllOffers(ri){
   const c=contacts[ri];if(!c||!c.approvals)return;
   const lines=c.approvals.split("\n").map(function(l){return l.trim();}).filter(function(l){return l&&!l.startsWith("http");}).join("\n");
