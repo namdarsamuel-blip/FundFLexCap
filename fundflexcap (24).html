@@ -1449,7 +1449,19 @@ function statusStyle(ls){
   return{bg:"rgba(255,255,255,.06)",border:"rgba(255,255,255,.12)",color:"rgba(255,255,255,.6)"};
 }
 
-function switchSheet(i){if(i===activeSheet&&contacts.length>0)return;activeSheet=i;localStorage.setItem("ffc_activeSheetIdx",String(i));contacts=[];idx=0;buildSwitcher();const w=$("lead-card");if(w)w.innerHTML='<div class="empty"><span class="empty-icon">⏳</span>Loading '+SHEETS[i].label+"…</div>";syncNow(true,false);}
+function switchSheet(i){
+  if(i===activeSheet&&contacts.length>0)return;
+  activeSheet=i;
+  localStorage.setItem("ffc_activeSheetIdx",String(i));
+  // Full reset — clear everything from previous sheet
+  contacts=[];idx=0;pipeline="active";activeStatusFilter="all";
+  // Clear row cache so writes go to correct rows on new sheet
+  Object.keys(_rowCache).forEach(function(k){delete _rowCache[k];});
+  buildSwitcher();
+  const w=$("lead-card");
+  if(w)w.innerHTML='<div class="empty"><span class="empty-icon">⏳</span>Loading '+SHEETS[i].label+"…</div>";
+  syncNow(true,false);
+}
 
 // Tap ↻ = animated refresh, stay on current card
 function syncAndGoFirst(){syncNow(false,false);}
