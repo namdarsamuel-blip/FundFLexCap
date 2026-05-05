@@ -81,7 +81,7 @@ button,input,textarea{font-family:inherit;border:none;outline:none;cursor:pointe
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-.topbar{background:rgba(13,10,26,.92);border-bottom:1px solid var(--border);padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.topbar{background:rgba(13,10,26,.92);border-bottom:1px solid var(--border);padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:90;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 .wordmark{font-size:20px;font-weight:900;letter-spacing:-.5px;color:#fff}
 .wordmark em{color:var(--gold);font-style:normal}
 .topbar-r{display:flex;gap:7px}
@@ -89,7 +89,7 @@ button,input,textarea{font-family:inherit;border:none;outline:none;cursor:pointe
 .tb-btn.spinning{animation:spin .7s linear infinite;color:var(--gold);border-color:var(--gold)}
 .tb-btn.ok{color:var(--green);border-color:var(--green)}
 .tb-btn.fail{color:var(--red);border-color:var(--red)}
-.nav-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 14px;background:rgba(13,10,26,.7);border-bottom:1px solid var(--border)}
+.nav-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 14px;background:rgba(13,10,26,.95);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:80;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .nav-count{font-size:13px;font-weight:800;color:var(--gold);background:linear-gradient(135deg,rgba(124,58,237,.2),rgba(201,162,39,.15));border:1px solid rgba(201,162,39,.3);border-radius:20px;padding:4px 16px}
 .nav-hint{font-size:11px;color:rgba(255,255,255,.2);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .screen{display:none;padding:10px 10px 80px;animation:fadeUp .25s ease both}
