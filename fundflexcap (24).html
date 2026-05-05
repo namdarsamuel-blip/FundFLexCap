@@ -1132,12 +1132,13 @@ function renderCard(){
   // Status color: prominent top bar + full header background tint
   const accentBorder=ss?ss.border:"rgba(45,37,80,.6)";
   const accentColor=ss?ss.color:"rgba(201,162,39,.5)";
-  const headerBg=ss?`background:linear-gradient(135deg,${ss.bg.replace("rgba(","rgba(").replace(/,[\d.]+\)$/,",0.22)")} 0%,rgba(15,12,35,1) 100%)`:"";
+  const headerBg=ss?"background:linear-gradient(135deg,"+ss.bg.replace(/,[\d.]+\)$/,",0.22)")+" 0%,rgba(15,12,35,1) 100%)":"";
+  const avatarBg=ss?"linear-gradient(135deg,"+ss.color+","+ss.bg.replace(/,[\d.]+\)$/,",0.6)")+")":`linear-gradient(135deg,${col},${col}88)`;
   wrap.innerHTML=`<div class="lead-card" style="border:1.5px solid ${isOnWait?"rgba(245,158,11,.4)":isOnReminder?"rgba(245,158,11,.4)":accentBorder};overflow:hidden">
   <div style="height:3px;background:${isOnWait?"rgba(245,158,11,.8)":isOnReminder?"rgba(245,158,11,.7)":accentColor}"></div>
   <div class="card-header" style="${headerBg}">
     <div class="card-header-top">
-      <div class="avatar" style="background:${ss?`linear-gradient(135deg,${ss.color},${ss.bg.replace(/,[\d.]+\)$/,',0.6)')})`:`linear-gradient(135deg,${col},${col}88)`}">${ini(c.name)}</div>
+      <div class="avatar" style="background:${avatarBg}">${ini(c.name)}</div>
       <div class="name-block">
         <div class="lead-name">${c.name||"—"}</div>
         <div class="lead-company">${c.company||" "}</div>
@@ -1510,7 +1511,7 @@ function switchSheet(i){
   buildSwitcher();
   const w=$("lead-card");
   if(w)w.innerHTML='<div class="empty"><span class="empty-icon">⏳</span>Loading '+SHEETS[i].label+"…</div>";
-  syncNow(true,false);
+  syncNow(true,false,i);
 }
 
 // Tap ↻ = animated refresh, stay on current card
@@ -1538,14 +1539,15 @@ async function runSortMacro(){
   }
 }
 
-async function syncNow(goFirst=false,silent=false){
+async function syncNow(goFirst=false,silent=false,expectedSheet){
   if(!silent)syncState("spin");
-  const syncingSheet=activeSheet;
+  const syncingSheet=expectedSheet!==undefined?expectedSheet:activeSheet;
   const s=currentSheet(),url=s.url||SHEET_URL;
   try{
     const res=await fetch(url+"?t="+Date.now()+"&sheet="+encodeURIComponent(s.tab));
     const text=await res.text();
-    if(activeSheet!==syncingSheet)return;
+    // Only discard if user explicitly switched to a different sheet since we started
+    if(activeSheet!==syncingSheet&&!goFirst)return;
     let data;
     try{data=JSON.parse(text);}catch{if(!silent){syncState("fail");toast("⚠️ Script error");}return;}
     if(data.error){if(!silent){syncState("fail");toast("⚠️ "+data.error);}return;}
@@ -1570,7 +1572,7 @@ async function syncNow(goFirst=false,silent=false){
     fetch((s.url||SHEET_URL)+"?action=statuses&sheet="+encodeURIComponent(s.tab)+"&t="+Date.now())
       .then(function(r){return r.text();})
       .then(function(text){
-        if(activeSheet!==syncingSheet)return;
+        if(activeSheet!==syncingSheet&&!goFirst)return;
         try{
           const d=JSON.parse(text);
           if(d.statuses&&d.statuses.length){
@@ -1593,7 +1595,7 @@ function selectSheet(i){
   buildSwitcher();
   const w=$("lead-card");
   if(w)w.innerHTML='<div class="empty"><span class="empty-icon">⏳</span>Loading '+SHEETS[i].label+"…</div>";
-  syncNow(true,false);
+  syncNow(true,false,i);
 }
 function showSheetPicker(){
   const ex=document.getElementById("sheet-picker-ov");if(ex)ex.remove();
