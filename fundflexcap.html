@@ -1539,6 +1539,18 @@ async function runSortMacro(){
   }
 }
 
+function syncState(s){const b=$("sync-btn");if(!b)return;b.className="tb-btn";b.textContent="↻";if(s==="spin"){b.classList.add("spinning");}else if(s==="ok"){b.classList.add("ok");b.textContent="✓";setTimeout(()=>{b.className="tb-btn";b.textContent="↻";},1800);}else if(s==="fail"){b.classList.add("fail");b.textContent="✗";setTimeout(()=>{b.className="tb-btn";b.textContent="↻";},2500);}}
+
+function toast(msg,dur=2400){const t=$("toast");if(!t)return;t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),dur);}
+
+function isWaiting(ct){
+  if(localStorage.getItem(CB_KEY(ct.row)))return true;
+  const w=(ct.waitUntil||"").trim();if(!w)return false;
+  const m=w.match(/^\[([^\]]+)\]\s+until\s+(.+)$/i);
+  const due=m?parseWaitDate(m[2]):parseWaitDate(w);
+  return due!==null&&due>Date.now();
+}
+
 async function syncNow(goFirst=false,silent=false,expectedSheet){
   if(!silent)syncState("spin");
   const syncingSheet=expectedSheet!==undefined?expectedSheet:activeSheet;
