@@ -2697,18 +2697,6 @@ async function generateAISMS(){
   }catch(e){toast("Network error: "+e.message);}
   btn.innerHTML="✨ Write message with AI";btn.disabled=false;
 }
-      btn.innerHTML="✨ Write message with AI";btn.disabled=false;return;
-    }
-    const msg=data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||"";
-    if(msg){
-      if(result)result.style.display="block";
-      if(ta){ta.value=msg;ta.style.height="auto";ta.style.height=ta.scrollHeight+"px";}
-    } else {
-      toast("Couldn't generate — try again");
-    }
-  }catch(e){toast("Network error: "+e.message);}
-  btn.innerHTML="✨ Write message with AI";btn.disabled=false;
-}
 
 /* BOOT — instant start, no waiting for network */
 (function(){
