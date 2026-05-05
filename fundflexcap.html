@@ -447,11 +447,19 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
     <div style="overflow-y:auto;padding:12px 14px 24px;-webkit-overflow-scrolling:touch">
       <div id="sms-template-list"></div>
       <div style="margin-top:14px;border-top:1px solid rgba(45,37,80,.5);padding-top:14px" id="sms-ai-section">
-        <button onclick="generateAISMS()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(201,162,39,.15));border:1px solid rgba(124,58,237,.35);color:#a78bfa;font-size:14px;font-weight:800;touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:8px" id="ai-sms-btn">✨ Write message with AI</button>
-        <div id="ai-sms-result" style="display:none;margin-top:10px">
-          <textarea id="ai-sms-ta" rows="5" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(124,58,237,.3);border-radius:12px;color:#fff;padding:12px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;line-height:1.5"></textarea>
-          <button onclick="sendAISMS()" style="width:100%;margin-top:8px;padding:12px;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#c9a227);border:none;color:#fff;font-size:14px;font-weight:800;touch-action:manipulation">Send →</button>
+        <input id="ai-sms-intent" type="text" placeholder="What do you want to say? (optional)" autocomplete="off" style="width:100%;background:rgba(0,0,0,.25);border:1px solid rgba(124,58,237,.25);border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;box-sizing:border-box;font-family:inherit;margin-bottom:8px">
+        <div id="ai-intent-chips" style="display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none;-ms-overflow-style:none">
+          <button onclick="setIntent(this,'sign contract')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✍️ Sign contract</button>
+          <button onclick="setIntent(this,'approved')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✅ Approved</button>
+          <button onclick="setIntent(this,'app sent')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📤 App sent</button>
+          <button onclick="setIntent(this,'ignoring me')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">👀 Ignoring me</button>
+          <button onclick="setIntent(this,'need docs')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📋 Need docs</button>
+          <button onclick="setIntent(this,'beat current offer')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">⚖️ Beat current</button>
+          <button onclick="setIntent(this,'close the deal')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🤝 Close</button>
+          <button onclick="setIntent(this,'get on a call')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📞 Get on call</button>
         </div>
+        <button onclick="generateAISMS()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(201,162,39,.15));border:1px solid rgba(124,58,237,.35);color:#a78bfa;font-size:14px;font-weight:800;touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:8px" id="ai-sms-btn">✨ Write message with AI</button>
+        <div id="ai-sms-cards" style="display:none;margin-top:12px;flex-direction:column;gap:10px"></div>
       </div>
     </div>
   </div>
@@ -2555,6 +2563,13 @@ function smsNav(level,key){
 
 function openSMSPicker(ri){
   _smsIdx=ri;
+  // Reset AI drafts UI from any previous lead
+  var aiCards=document.getElementById("ai-sms-cards");
+  if(aiCards){aiCards.innerHTML="";aiCards.style.display="none";}
+  var aiBtn=document.getElementById("ai-sms-btn");
+  if(aiBtn){aiBtn.innerHTML="✨ Write message with AI";aiBtn.disabled=false;}
+  var aiIntent=document.getElementById("ai-sms-intent");
+  if(aiIntent)aiIntent.value="";
   var c=contacts[ri];
   if(!c){toast("No contact");return;}
   var phone=(c.phone||"").replace(/\D/g,"");
@@ -2684,12 +2699,27 @@ function sendCustomSMS(){}
 
 function closeSMSPicker(){$("sms-ov").style.display="none";_smsIdx=null;}
 
-function sendAISMS(){
+// Tap a chip → fill the intent input, briefly highlight the chip, and auto-generate
+function setIntent(btn, text){
+  const input=$("ai-sms-intent");
+  if(input)input.value=text;
+  if(btn){
+    // visual confirmation
+    const orig={bg:btn.style.background,border:btn.style.borderColor,color:btn.style.color};
+    btn.style.background="rgba(124,58,237,.25)";
+    btn.style.borderColor="rgba(124,58,237,.5)";
+    btn.style.color="#c4b5fd";
+    setTimeout(()=>{btn.style.background=orig.bg;btn.style.borderColor=orig.border;btn.style.color=orig.color;},600);
+  }
+  generateAISMS();
+}
+
+function sendAISMS(idx){
   if(_smsIdx===null)return;
   const c=contacts[_smsIdx];
   const phone=(c.phone||"").replace(/\D/g,"");
   if(!phone)return;
-  const ta=$("ai-sms-ta");
+  const ta=$("ai-sms-ta-"+idx);
   const body=ta?ta.value.trim():"";
   if(!body){toast("AI message not ready yet");return;}
   window.open("sms:"+phone+"&body="+encodeURIComponent(body),"_self");
@@ -2699,30 +2729,151 @@ function sendAISMS(){
 
 async function generateAISMS(){
   if(_smsIdx===null)return;
-  const btn=$("ai-sms-btn"),result=$("ai-sms-result"),ta=$("ai-sms-ta");
-  if(!btn)return;
+  const btn=$("ai-sms-btn"),cards=$("ai-sms-cards");
+  if(!btn||!cards)return;
   const c=contacts[_smsIdx];
   if(!c)return;
-  btn.innerHTML="✨ Writing…";btn.disabled=true;
+  btn.innerHTML="✨ Writing 3 drafts…";btn.disabled=true;
+
+  // ── Build comprehensive lead context ──
   const first=(c.name||"").split(" ")[0]||"there";
   const statusLabel=(c.leadStatus||"").replace(/^[\d.]+\.?\s*/,"").trim();
-  const bestOffer=c.approvals?(c.approvals.split("\n")[0].replace(/https?:\/\/\S+/g,"").trim()):"";
-  const promptText="You are Sam, a confident MCA/business credit broker. Write ONE short natural SMS to "+first+" ("+(c.company||"a merchant")+").\n\nLead status: "+(statusLabel||"unknown")+"\nNotes: "+(c.notes||"none").slice(0,400)+"\nWants: "+(c.wants||"not specified")+"\nCredit score: "+(c.credit||"unknown")+"\nBest offer: "+(bestOffer||"none yet")+"\nStatus note: "+(c.status||"")+"\n\nWrite the single most relevant message to send right now. Under 160 chars if possible. Human, confident, never salesy. Output ONLY the SMS text.";
-  try{
-    const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyC0rzEmNhqtXGXdaJTpgl4bxyUPJ5XNe0E",{
+  const today=new Date();
+  const todayStr=today.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  const intentInput=$("ai-sms-intent");
+  const intent=intentInput?intentInput.value.trim():"";
+
+  // Wait timer state
+  let waitInfo="None";
+  if(c.waitUntil){
+    const m=String(c.waitUntil).match(/(\w+\s+\d+,\s+\d{4}\s+at\s+[\d:apmAPM\s]+)/);
+    let expired=false;
+    if(m){const d=new Date(m[1]);if(d&&!isNaN(d))expired=d<today;}
+    waitInfo=c.waitUntil+(expired?" [EXPIRED — ready to call]":" [ACTIVE — do not reach out yet]");
+  }
+  // Reminder state
+  let reminderInfo="None";
+  if(c.reminder){
+    const m=String(c.reminder).match(/(\w+\s+\d+,\s+\d{4}\s+at\s+[\d:apmAPM\s]+)/);
+    let due=false;
+    if(m){const d=new Date(m[1]);if(d&&!isNaN(d))due=d<today;}
+    reminderInfo=c.reminder+(due?" [DUE NOW]":" [scheduled for future]");
+  }
+
+  // All offers (not just best)
+  const allOffers=c.approvals?c.approvals.split("\n").map(l=>l.replace(/https?:\/\/\S+/g,"").trim()).filter(Boolean).join("\n"):"None on the table yet";
+
+  const promptText=
+"You are Sam, a confident MCA and business credit broker. You text merchants to move deals forward. Your style: direct, human, confident, never desperate, never salesy. You write like you're already on their deal team.\n"+
+"\nTODAY'S DATE: "+todayStr+
+"\n\n══ LEAD ══"+
+"\nName: "+(c.name||"unknown")+
+"\nFirst name to use: "+first+
+"\nCompany: "+(c.company||"unknown")+
+"\nIndustry: "+(c.industry||"unknown")+
+"\nIn business since: "+(c.businessDate||"unknown")+
+"\nPhone on file: "+(c.phone?"yes":"no")+
+"\nDL/VC on file: "+(c.dlVc||"unknown")+
+"\nFederal tax ID on file: "+(c.federalTax||"unknown")+
+"\nCredit score: "+(c.credit||"unknown")+
+"\nTags: "+(c.tags||"none")+
+"\n\n══ DEAL STATE ══"+
+"\nLead status (where in the pipeline): "+(statusLabel||"unknown")+
+"\nStatus note (most current detail): "+(c.status||"none")+
+"\nWhat the merchant wants: "+(c.wants||"not specified")+
+"\nWait timer: "+waitInfo+
+"\nReminder: "+reminderInfo+
+"\n\n══ CONVERSATION HISTORY (notes) ══\n"+(c.notes||"No prior notes")+
+"\n\n══ ALL OFFERS ON THE TABLE ══\n"+allOffers+
+(intent?"\n\n══ MY INTENT (what I want to land) ══\n\""+intent+"\"\nThis is the core message I want to deliver to "+first+" right now. All three drafts must serve this intent — not drift to other topics. Each draft delivers it from a different angle.":"")+
+"\n\n══ YOUR TASK ══"+
+(intent
+  ? "\nDraft THREE distinctly different SMS messages that all communicate this intent: \""+intent+"\". Each must take a clearly different strategic angle — not three variations of the same message."
+  : "\nDraft THREE distinctly different SMS messages to send "+first+" right now. Each must take a clearly different strategic angle — not three variations of the same message.")+
+"\n\nThe three angles, in this order:"+
+"\n1. DIRECT PUSH — Move the deal forward. Ask for the specific next step they need to take based on the deal state. Confident, assumes the close."+
+"\n2. SOFT CHECK-IN — Re-open conversation low-pressure. Best when they've gone quiet, are stalling, or need breathing room. Curious tone, not chasing."+
+"\n3. VALUE / URGENCY — Anchor on what's on the table or why now matters. Reference the actual offers if any, or the timing of their goals. Real urgency only — no fake scarcity."+
+"\n\nRULES"+
+"\n- Reference real details from above (offer amounts, status, what they wanted, what they said in notes). Do NOT be generic."+
+"\n- Use "+first+" by name."+
+"\n- Each message under 160 characters when possible."+
+"\n- Sound human and confident. No 'I hope this finds you well'. No 'just checking in!' (cliché)."+
+"\n- If the wait timer is ACTIVE, the deal is on hold — write messages they can send AFTER the wait expires (acknowledge the gap)."+
+"\n- If notes show the merchant is mid-decision, push toward decision; if mid-docs, push toward docs; if mid-contract, push toward signing."+
+"\n- Never use exclamation marks more than once across all 3 messages combined."+
+(intent?"\n- The intent \""+intent+"\" is non-negotiable — it must be the substance of every draft. The angle determines HOW to say it, not WHAT to say.":"")+
+"\n\nOUTPUT FORMAT — return ONLY this JSON, no markdown fences, no explanation:"+
+"\n{\"messages\":[{\"angle\":\"Direct push\",\"text\":\"...\"},{\"angle\":\"Soft check-in\",\"text\":\"...\"},{\"angle\":\"Value / urgency\",\"text\":\"...\"}]}";
+
+  const callGemini=async(model)=>{
+    const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent?key=AIzaSyC0rzEmNhqtXGXdaJTpgl4bxyUPJ5XNe0E",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({contents:[{parts:[{text:promptText}]}]})
+      body:JSON.stringify({
+        contents:[{parts:[{text:promptText}]}],
+        generationConfig:{temperature:0.85,responseMimeType:"application/json"}
+      })
     });
-    const data=await res.json();
+    return r.json();
+  };
+  const isOverload=(err)=>!!err&&(err.code===503||err.code===429||/overload|high demand|UNAVAILABLE|RESOURCE_EXHAUSTED|try again/i.test((err.message||"")+" "+(err.status||"")));
+  const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+
+  // Robust JSON parser — handles markdown fences, preamble, trailing text
+  const parseAIJSON=(t)=>{
+    if(!t)return null;
+    let s=t.replace(/```json\s*|\s*```/g,"").trim();
+    const a=s.indexOf("{"),b=s.lastIndexOf("}");
+    if(a>=0&&b>a)s=s.slice(a,b+1);
+    try{return JSON.parse(s);}catch(e){return null;}
+  };
+
+  try{
+    // gemini-2.5-flash gives better structured output for this richer task
+    let data=await callGemini("gemini-2.5-flash");
+    if(data.error&&isOverload(data.error)){btn.innerHTML="✨ Retrying…";await wait(1200);data=await callGemini("gemini-2.5-flash-lite");}
+    if(data.error&&isOverload(data.error)){await wait(2000);data=await callGemini("gemini-2.5-flash");}
     if(data.error){toast("AI error: "+data.error.message);btn.innerHTML="✨ Write message with AI";btn.disabled=false;return;}
-    const msg=(((data.candidates||[])[0]||{}).content||{parts:[{text:""}]}).parts[0].text.trim();
-    if(msg){
-      if(result)result.style.display="block";
-      if(ta){ta.value=msg;ta.style.height="auto";ta.style.height=ta.scrollHeight+"px";}
-    } else {toast("Couldn't generate — try again");}
+
+    const raw=(((data.candidates||[])[0]||{}).content||{parts:[{text:""}]}).parts[0].text||"";
+    const parsed=parseAIJSON(raw);
+    const msgs=(parsed&&Array.isArray(parsed.messages))?parsed.messages.filter(m=>m&&m.text):[];
+
+    if(!msgs.length){toast("Couldn't generate — try again");btn.innerHTML="✨ Write message with AI";btn.disabled=false;return;}
+
+    // Three distinct accent colors per angle
+    const accents=[
+      {bg:"linear-gradient(135deg,rgba(239,68,68,.12),rgba(239,68,68,.04))",border:"rgba(239,68,68,.35)",label:"#fca5a5",icon:"🎯"},
+      {bg:"linear-gradient(135deg,rgba(59,130,246,.12),rgba(59,130,246,.04))",border:"rgba(59,130,246,.35)",label:"#93c5fd",icon:"💬"},
+      {bg:"linear-gradient(135deg,rgba(201,162,39,.14),rgba(201,162,39,.04))",border:"rgba(201,162,39,.4)",label:"#fcd34d",icon:"⚡"}
+    ];
+
+    cards.innerHTML="";
+    msgs.slice(0,3).forEach((m,i)=>{
+      const a=accents[i]||accents[0];
+      const angle=m.angle||["Direct push","Soft check-in","Value / urgency"][i]||"Option "+(i+1);
+      const text=String(m.text||"").trim();
+      const card=document.createElement("div");
+      card.style.cssText="background:"+a.bg+";border:1px solid "+a.border+";border-radius:14px;padding:11px 12px";
+      card.innerHTML=
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
+          '<div style="font-size:11px;font-weight:800;color:'+a.label+';letter-spacing:.4px;text-transform:uppercase">'+a.icon+' '+angle+'</div>'+
+          '<div id="ai-cc-'+i+'" style="font-size:10px;color:rgba(255,255,255,.4);font-weight:600">'+text.length+' ch</div>'+
+        '</div>'+
+        '<textarea id="ai-sms-ta-'+i+'" rows="3" style="width:100%;background:rgba(0,0,0,.25);border:1px solid '+a.border+';border-radius:10px;color:#fff;padding:10px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;line-height:1.5"></textarea>'+
+        '<button onclick="sendAISMS('+i+')" style="width:100%;margin-top:8px;padding:11px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#c9a227);border:none;color:#fff;font-size:13px;font-weight:800;touch-action:manipulation">Send →</button>';
+      cards.appendChild(card);
+      const ta=card.querySelector("#ai-sms-ta-"+i);
+      ta.value=text;
+      // auto-grow + live char count
+      const grow=()=>{ta.style.height="auto";ta.style.height=ta.scrollHeight+"px";const cc=card.querySelector("#ai-cc-"+i);if(cc)cc.textContent=ta.value.length+" ch";};
+      ta.addEventListener("input",grow);
+      requestAnimationFrame(grow);
+    });
+    cards.style.display="flex";
   }catch(e){toast("Network error: "+e.message);}
-  btn.innerHTML="✨ Write message with AI";btn.disabled=false;
+  btn.innerHTML="✨ Regenerate 3 drafts";btn.disabled=false;
 }
 
 /* BOOT — instant start, no waiting for network */
