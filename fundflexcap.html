@@ -449,14 +449,17 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
       <div style="margin-top:14px;border-top:1px solid rgba(45,37,80,.5);padding-top:14px" id="sms-ai-section">
         <input id="ai-sms-intent" type="text" placeholder="What do you want to say? (optional)" autocomplete="off" style="width:100%;background:rgba(0,0,0,.25);border:1px solid rgba(124,58,237,.25);border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;box-sizing:border-box;font-family:inherit;margin-bottom:8px">
         <div id="ai-intent-chips" style="display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none;-ms-overflow-style:none">
-          <button onclick="setIntent(this,'sign contract')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✍️ Sign contract</button>
-          <button onclick="setIntent(this,'approved')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✅ Approved</button>
-          <button onclick="setIntent(this,'app sent')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📤 App sent</button>
-          <button onclick="setIntent(this,'ignoring me')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">👀 Ignoring me</button>
-          <button onclick="setIntent(this,'need docs')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📋 Need docs</button>
-          <button onclick="setIntent(this,'beat current offer')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">⚖️ Beat current</button>
-          <button onclick="setIntent(this,'close the deal')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🤝 Close</button>
-          <button onclick="setIntent(this,'get on a call')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📞 Get on call</button>
+          <button onclick="setIntent(this,'get email and how much they need')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📧 Get email</button>
+          <button onclick="setIntent(this,'app sent — finish the application')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📤 App sent</button>
+          <button onclick="setIntent(this,'approved — book the pitch call')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✅ Approved → call</button>
+          <button onclick="setIntent(this,'pending decision — push for yes/no')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">⏳ Pending</button>
+          <button onclick="setIntent(this,'need driver license and voided check')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🪪 DL + VC</button>
+          <button onclick="setIntent(this,'sign the contract')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✍️ Sign contract</button>
+          <button onclick="setIntent(this,'bank verification one-time login OTL')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🔐 OTL</button>
+          <button onclick="setIntent(this,'lock in the funder call')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📞 Funder call</button>
+          <button onclick="setIntent(this,'ignoring me — re-engage')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">👀 No reply</button>
+          <button onclick="setIntent(this,'beat their current offer')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">⚖️ Beat current</button>
+          <button onclick="setIntent(this,'refinance — about 50% paid in')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🔄 Refi</button>
         </div>
         <button onclick="generateAISMS()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(201,162,39,.15));border:1px solid rgba(124,58,237,.35);color:#a78bfa;font-size:14px;font-weight:800;touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:8px" id="ai-sms-btn">✨ Write message with AI</button>
         <div id="ai-sms-cards" style="display:none;margin-top:12px;flex-direction:column;gap:10px"></div>
@@ -1146,7 +1149,7 @@ function renderCard(){
   // Status color: prominent top bar + full header background tint
   const accentBorder=ss?ss.border:"rgba(45,37,80,.6)";
   const accentColor=ss?ss.color:"rgba(201,162,39,.5)";
-  const headerBg=ss?"background:linear-gradient(135deg,"+ss.bg.replace(/,[\d.]+\)$/,",0.22)")+" 0%,rgba(15,12,35,1) 100%)":"";
+  const headerBg=ss?"background:linear-gradient(160deg,"+ss.bg.replace(/,[\d.]+\)$/,",0.35)")+" 0%,"+ss.bg.replace(/,[\d.]+\)$/,",0.08)")+" 55%,rgba(15,12,35,.95) 100%)":"";
   const avatarBg=ss?"linear-gradient(135deg,"+ss.color+","+ss.bg.replace(/,[\d.]+\)$/,",0.6)")+")":`linear-gradient(135deg,${col},${col}88)`;
   // Pre-compute all conditional HTML to avoid nested backtick issues on Safari/iOS
   const htmlPhone=ph?('<a class="lead-phone" href="tel:'+ph+'"><span class="lead-phone-dot"></span>'+fmtPhone(c.phone)+'</a>'):'<span class="lead-phone" style="color:rgba(255,255,255,.25)">No phone</span>';
@@ -1157,16 +1160,31 @@ function renderCard(){
   const remData=remStored?JSON.parse(remStored):null;
   const remLabel=remData?remData.label||"Reminder":"Reminder";
   const remDiff=remData?remData.due-Date.now():0;
-  const remTime=remData?(remData.fired||remDiff<=0?"Due now":(Math.floor(remDiff/3600000)>0?Math.floor(remDiff/3600000)+"h ":"")+Math.floor((remDiff%3600000)/60000)+"m remaining"):"";
-  const htmlRemBanner=isOnReminder?('<div onclick="openReminderPicker('+c.row+')" style="background:rgba(245,158,11,.07);border-top:2px solid rgba(245,158,11,.5);padding:9px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">🔔</span><div><div style="font-size:11px;font-weight:800;color:#f59e0b">'+remLabel+'</div><div style="font-size:10px;color:rgba(245,158,11,.6);margin-top:1px">'+remTime+'</div></div></div><button onclick="event.stopPropagation();clearReminder('+c.row+')" style="padding:5px 12px;border-radius:10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#f59e0b;font-size:12px;font-weight:700;touch-action:manipulation">✕ Dismiss</button></div>'):'';
+  const remDue=remData?(remData.fired||remDiff<=0):false;
+  const remTime=remData?(remDue?"Due now":(Math.floor(remDiff/3600000)>0?Math.floor(remDiff/3600000)+"h ":"")+Math.floor((remDiff%3600000)/60000)+"m"):"";
+  // Reminder = rounded amber pill, inset like a sticky note attached to the card
+  // Distinctly different from the status color bar (sits below it, not on top)
+  const htmlRemStrip=isOnReminder?(
+    '<div onclick="openReminderPicker('+c.row+')" style="margin:9px 12px 0;padding:9px 11px;border-radius:11px;background:linear-gradient(135deg,rgba(245,158,11,'+(remDue?'.32':'.18')+') 0%,rgba(245,158,11,'+(remDue?'.14':'.06')+') 100%);border:1px solid rgba(245,158,11,'+(remDue?'.55':'.4')+');display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;box-shadow:'+(remDue?'0 0 16px rgba(245,158,11,.25), inset 0 0 0 1px rgba(245,158,11,.15)':'0 1px 0 rgba(245,158,11,.08)')+'">'+
+      '<div style="display:flex;align-items:center;gap:9px;min-width:0;flex:1;overflow:hidden">'+
+        '<span style="font-size:15px;'+(remDue?'animation:pulse 1.4s ease-in-out infinite':'')+'">🔔</span>'+
+        '<div style="display:flex;flex-direction:column;min-width:0;flex:1">'+
+          '<span style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(251,191,36,.7);line-height:1">'+(remDue?'Reminder · Due now':'Reminder')+'</span>'+
+          '<span style="font-size:12px;font-weight:800;color:'+(remDue?'#fcd34d':'#fbbf24')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">'+remLabel+(remDue?'':' <span style="font-weight:700;color:rgba(251,191,36,.55)">· '+remTime+'</span>')+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<button onclick="event.stopPropagation();clearReminder('+c.row+')" style="padding:5px 11px;border-radius:8px;background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.4);color:#fcd34d;font-size:11px;font-weight:800;flex-shrink:0;touch-action:manipulation;line-height:1">✕ Dismiss</button>'+
+    '</div>'
+  ):'';
   const htmlTags=nonWaitTags.map(function(t){return'<span class="tag-pill" style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);color:#a78bfa'+(isOnWait?';opacity:.4':'')+'">'+ t+'</span>';}).join('');
   const htmlSetRem=isOnReminder?'':'<button onclick="openReminderPicker('+c.row+')" class="cb-pill set" style="display:inline-flex;align-items:center;gap:5px">🔔 Set reminder</button>';
   const htmlSmsBtn=ph?('<button class="btn-sms" onclick="openSMSPicker('+idx+')">💬 Text</button>'):'<button class="btn-sms off" style="cursor:not-allowed">💬 Text</button>';
   const htmlOffersBlock=(function(){if(!c.approvals)return'';const lines=c.approvals.split("\n").map(function(line){const l=line.trim();if(!l||l.startsWith("http"))return"";return'<button onclick="copySingleOffer('+idx+',this.dataset.offer)" data-offer="'+l.replace(/"/g,"&quot;")+'" style="width:100%;text-align:left;padding:8px 10px;margin-bottom:5px;background:rgba(255,255,255,.04);border:1px solid rgba(45,37,80,.6);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;touch-action:manipulation;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>'+l+'</span><span style="color:var(--sub);font-size:11px;flex-shrink:0">copy</span></button>';}).join("");return'<div style="border-top:1px solid rgba(45,37,80,.6);padding:10px 12px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">📋 All Offers</div><button onclick="copyAllOffers('+idx+')" style="padding:5px 12px;border-radius:16px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.35);color:var(--gold);font-size:11px;font-weight:800;touch-action:manipulation">Copy all</button></div>'+lines+'</div>';}());
 
   wrap.innerHTML=
-    '<div class="lead-card" style="border:1.5px solid '+(isOnWait||isOnReminder?"rgba(245,158,11,.4)":accentBorder)+';overflow:hidden">'
-    +'<div style="height:3px;background:'+(isOnWait?"rgba(245,158,11,.8)":isOnReminder?"rgba(245,158,11,.7)":accentColor)+'"></div>'
+    '<div class="lead-card" style="border:1.5px solid '+accentBorder+';overflow:hidden'+(isOnReminder&&remDue?';box-shadow:0 0 0 1px rgba(245,158,11,.4),0 0 24px rgba(245,158,11,.18)':'')+'">'
+    +'<div style="height:3px;background:'+accentColor+'"></div>'
+    +htmlRemStrip
     +'<div class="card-header" style="'+headerBg+'">'
       +'<div class="card-header-top">'
         +'<div class="avatar" style="background:'+avatarBg+'">'+ini(c.name)+'</div>'
@@ -1180,7 +1198,7 @@ function renderCard(){
           +htmlScore
         +'</div>'
       +'</div>'
-      +htmlWaitBanner+htmlRemBanner
+      +htmlWaitBanner
       +'<div class="card-meta-row">'
         +'<span class="status-pill" onclick="openStatusPicker('+idx+')" style="background:'+badgeBg+';border:1.5px solid '+badgeBdr+';color:'+badgeClr+(isOnWait?';opacity:.4;filter:grayscale(.5)':'')+'">&bull; '+(rawLabel||"Set status")+'</span>'
         +htmlTags+buildCbHtml(c)+htmlSetRem
@@ -2608,7 +2626,20 @@ function openSMSPicker(ri){
       approved:{label:"Approval",icon:"✅",templates:[
         {l:"Approval + call",b:"Great news. I got "+biz+" approved for "+amt+". Let's hop on a quick call so I can explain the early payment discounts — it'll save you a lot on the payback. You free now?"},
         {l:"Approval ready",b:first+" approval came back. I have the details ready. When can you jump on a call so I can walk you through everything?"},
+        {l:"Better terms on call",b:"Got the approval back "+first+". Want to get on a quick call so I can understand the business better — there's a real chance I can pull better terms or more capital than what's on paper. 5 mins, when works?"},
         {l:"Great terms available",b:"Great news! I could have you approved and wired today with our best programs. The terms depend on your revenue, credit, industry and positions. My underwriter needs to look at the financials to lock in the terms but we're highly competitive and could fund same day."},
+      ]},
+      pending:{label:"Pending Decision",icon:"⏳",templates:[
+        {l:"Where are we at",b:first+" where are we at on the "+amt+" we discussed? Just need a yes/no so I know whether to start contracts."},
+        {l:"Holding the offer",b:"Just checking in — I'm still holding the "+amt+" approval for you but the terms are tied to today's underwriter window. What are you thinking?"},
+        {l:"Help me think it through",b:first+" if there's anything on the fence, let me know what's on your mind. I'd rather talk it through than have you sit on it."},
+        {l:"Move or not",b:"Let me know if we're moving on this or not "+first+". Either way is fine — just need to know so I can manage the file."},
+      ]},
+      dlvc:{label:"DL & Voided Check",icon:"🪪",templates:[
+        {l:"Need DL + VC",b:first+" before I can send the contract over I need a picture of your driver's license and a voided check (or motor check). Send those over and I'll fire the contract right after."},
+        {l:"Just the DL",b:"Just need a clear picture of your driver's license to move on the contract."},
+        {l:"Just the VC",b:"Need a voided check (or motor check) on file before I can release the contract. Quick photo works."},
+        {l:"Reminder DL/VC",b:first+" still waiting on the driver's license and voided check — once those are in, contract goes out same minute."},
       ]},
       contract:{label:"Contracts",icon:"✍️",templates:[
         {l:"Contracts sent (text 1)",b:"Just sent the contracts for "+amt+" to your email."},
@@ -2617,8 +2648,23 @@ function openSMSPicker(ri){
         {l:"Early payoff discount",b:"We also offer really nice early payment discounts. So whenever you're ready to pay this off we'll be applying discounts and you won't be paying the full amount back."},
         {l:"Cold contract follow up",b:first+" I haven't seen those contracts come back yet. I can only hold this "+amt+" offer for so long before the funds are reallocated to the next file. Are we getting this funded today?"},
       ]},
+      otl:{label:"Bank Verification (OTL)",icon:"🔐",templates:[
+        {l:"OTL incoming",b:"Now that the contract is signed we just need a quick bank verification — a one-time login so the underwriter can confirm everything live. Takes 60 seconds. I'll send the link in a sec."},
+        {l:"Why OTL not PDF",b:"Heads up — we do live bank verification (OTL) instead of statement PDFs. PDFs can be edited so the funder needs a live look. Nothing stays connected after, it's one-time only."},
+        {l:"Send OTL link",b:first+" here's the secure link for the bank verification. One-time login, takes a minute, and we're done with verifications."},
+        {l:"Push OTL",b:"Still need that bank verification done "+first+". Can't push to funding without it — quick one-time login, then we move."},
+      ]},
+      funder:{label:"Funder Call",icon:"📞",templates:[
+        {l:"Schedule funder call",b:"Last step "+first+" — quick call with the funder to finalize. What time today works? Once we knock that out we're at the wire."},
+        {l:"Call this number",b:"For the funder call please dial: [insert number]. They're expecting you. Call as soon as you can — they'll wrap up funding right on the line."},
+        {l:"Be ready at X",b:"Funder is going to call you at [insert time]. Pick up — it's a 3-5 minute verification call and then we're funded."},
+        {l:"Cold funder call",b:first+" did the funder reach out? Need to get that call done today so we can wire."},
+      ]},
       funded:{label:"Funded / Renewal",icon:"🎉",templates:[
+        {l:"Funded ✅",b:"Funded ✅ Pleasure working with you "+first+". Let me know when the wire hits."},
         {l:"Funds on the way",b:"Funds are on the way "+first+"! Glad we could get this done for "+biz+". Let me know when you see it hit the account."},
+        {l:"Check in 1 month",b:"Hey "+first+" how's the deployment of capital going? Anything else "+biz+" needs?"},
+        {l:"50% paid — refi",b:"Hey "+first+" you're about halfway through the payback. Want me to look at a refinance and pull more capital out? Most of my clients hit this point and re-up — usually with better terms."},
         {l:"Renewal offer",b:"Hey "+first+" you've been solid on the payments. I just got the green light to offer you a renewal with better terms and a higher limit. How much do you need for the business right now?"},
       ]},
     }},
@@ -2785,6 +2831,46 @@ async function generateAISMS(){
 "\nReminder: "+reminderInfo+
 "\n\n══ CONVERSATION HISTORY (notes) ══\n"+(c.notes||"No prior notes")+
 "\n\n══ ALL OFFERS ON THE TABLE ══\n"+allOffers+
+"\n\n══ HOW SAM WORKS THE MCA FLOW (your playbook) ══"+
+"\nThe MCA pipeline has clear stages. Match the message to where this lead actually is in the flow. Each text is meant to move the deal to the NEXT stage — not to close the whole deal in a single message."+
+"\n\nSTAGE 1 — QUALIFYING (Interested / new lead)"+
+"\nGoal: Get their email, ask how much they need, ask credit score."+
+"\nNext step we want from them: send us their email so we can fire off the application."+
+"\n\nSTAGE 2 — APPLICATION SENT (App Sent)"+
+"\nGoal: Get them to complete the JotForm app today."+
+"\nApp link if needed: https://form.jotform.com/253154501377151"+
+"\nNext step we want from them: finish the application so we can pull approvals."+
+"\n\nSTAGE 3 — APPROVED — TIME TO PITCH ON A CALL (Approved)"+
+"\nCRITICAL RULE: SAM DOES NOT SELL THE DEAL OVER TEXT. The pitch happens on the phone."+
+"\nGoal: Get them on a call. Frame it as 'let's hop on a call so I can give you better terms / understand your business better / probably approve you for more.'"+
+"\nWhy phone not text: a text close gives them an easy 'no' over text. A call lets us actually have the conversation, learn the business, and unlock better numbers from the funder."+
+"\nNext step we want from them: pick a time for a 5-10 minute call."+
+"\n\nSTAGE 4 — PENDING DECISION (post-pitch, they said 'let me think')"+
+"\nGoal: Push gently for the yes/no so we know whether to send contracts. Reinforce why now."+
+"\nNext step we want from them: a clear go-ahead so we can send contracts."+
+"\n\nSTAGE 5 — CONTRACTS (signing)"+
+"\nBefore the contract goes out we need: driver's license + voided check (or motor check). Once those are in, the contract goes to their email."+
+"\nGoal: collect DL/VC if missing, OR push to sign if contract is already in their inbox."+
+"\nNext step we want from them: send the DL+VC pictures, or sign the contract."+
+"\n\nSTAGE 6 — BANK VERIFICATION / OTL (one-time login)"+
+"\nAfter signing we do a live look at their bank — One Time Login. PDFs can be Photoshopped/AI-edited so we need a live view confirming no recent funding and no problematic transactions."+
+"\nGoal: walk them through the OTL or schedule the live verification."+
+"\nNext step we want from them: complete the OTL when prompted."+
+"\n\nSTAGE 7 — FUNDER CALL"+
+"\nSam (broker) coordinates a call between the merchant and the funder. Either the merchant calls a number Sam sends them, or is ready when Sam tells them, or takes the call at a scheduled time. This finishes the funder's account."+
+"\nGoal: lock in the funder call time, prep them for it."+
+"\nNext step we want from them: be available for the funder call."+
+"\n\nSTAGE 8 — FUNDED"+
+"\nGoal: short, warm confirmation. Pleasure working with you. Funded ✅."+
+"\n\nSTAGE 9 — REPEAT / REFINANCE"+
+"\nOnce 50%+ paid in (typically 1-2 months later), reach out to refinance them up for more working capital."+
+"\nGoal: re-engage warmly, ask how much they want now."+
+"\n\n══ GOLDEN RULES SAM LIVES BY ══"+
+"\n- A text moves the deal to the NEXT stage. It does not try to close the entire deal."+
+"\n- Selling happens on the phone, not in text. If we're at approved/pitch stage, the message must aim at booking a call — never give a hard close in text."+
+"\n- Never give them an easy out. 'Are you still interested?' invites a no. Push toward a concrete action instead."+
+"\n- Reference real artifacts where useful: the JotForm link, the actual offer amount, the DL/VC requirement, the OTL, the funder call."+
+"\n- Sound like Sam: confident, on the deal team, never desperate, never salesy."+
 (intent?"\n\n══ MY INTENT (what I want to land) ══\n\""+intent+"\"\nThis is the core message I want to deliver to "+first+" right now. All three drafts must serve this intent — not drift to other topics. Each draft delivers it from a different angle.":"")+
 "\n\n══ YOUR TASK ══"+
 (intent
@@ -2800,7 +2886,8 @@ async function generateAISMS(){
 "\n- Each message under 160 characters when possible."+
 "\n- Sound human and confident. No 'I hope this finds you well'. No 'just checking in!' (cliché)."+
 "\n- If the wait timer is ACTIVE, the deal is on hold — write messages they can send AFTER the wait expires (acknowledge the gap)."+
-"\n- If notes show the merchant is mid-decision, push toward decision; if mid-docs, push toward docs; if mid-contract, push toward signing."+
+"\n- Identify what stage of Sam's playbook this lead is at (use the lead status, status note, and notes). The drafts must aim at the NEXT step in that stage's flow — not skip ahead, not stay stuck."+
+"\n- If we're at the Approved stage, the goal of every draft is to BOOK A CALL. Do not try to close the deal in the text. The drafts should make the call feel valuable (better terms, more capital, understanding their business)."+
 "\n- Never use exclamation marks more than once across all 3 messages combined."+
 (intent?"\n- The intent \""+intent+"\" is non-negotiable — it must be the substance of every draft. The angle determines HOW to say it, not WHAT to say.":"")+
 "\n\nOUTPUT FORMAT — return ONLY this JSON, no markdown fences, no explanation:"+
