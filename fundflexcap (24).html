@@ -809,36 +809,32 @@ function openCallbackPicker(row){
   const nextHour=new Date(now);nextHour.setMinutes(0,0,0);nextHour.setHours(nextHour.getHours()+1);
   const dtDefault=nextHour.toISOString().slice(0,16);
   const opts=[
-    {l:"15 min",ms:900000},{l:"30 min",ms:1800000},{l:"1 hour",ms:3600000},
-    {l:"2 hours",ms:7200000},{l:"3 hours",ms:10800000},{l:"4 hours",ms:14400000},
-    {l:"Tomorrow",ms:86400000},{l:"2 days",ms:172800000},{l:"Next week",ms:604800000},
-    {l:"2 weeks",ms:1209600000},{l:"Next month",ms:2592000000}
+    {l:"15 min",ms:900000},{l:"20 min",ms:1200000},{l:"25 min",ms:1500000},{l:"30 min",ms:1800000},
+    {l:"45 min",ms:2700000},{l:"1 hour",ms:3600000},{l:"2 hours",ms:7200000},{l:"3 hours",ms:10800000},
+    {l:"4 hours",ms:14400000},{l:"Tomorrow",ms:86400000},{l:"2 days",ms:172800000},{l:"Next week",ms:604800000},
   ];
-  ov.innerHTML=`<div style="width:100%;background:linear-gradient(180deg,#1a1040,#130e2e);border-radius:24px 24px 0 0;border-top:1px solid rgba(124,58,237,.25);padding:0 0 50px;max-height:88vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.16,1,.3,1) both">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 12px;border-bottom:1px solid rgba(45,37,80,.5)">
-      <div><div style="font-size:18px;font-weight:900;color:#fff">⏱ Set Wait Timer</div><div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px">Lead moves to Wait pipeline until timer expires</div></div>
+  ov.innerHTML=`<div style="width:100%;background:linear-gradient(180deg,#1a1040,#130e2e);border-radius:24px 24px 0 0;border-top:1px solid rgba(245,158,11,.4);padding:0 0 50px;max-height:92vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.16,1,.3,1) both">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;border-bottom:1px solid rgba(45,37,80,.5)">
+      <div style="font-size:18px;font-weight:900;color:#fff">⏱ Set Wait Timer</div>
       <button onclick="$('cb-ov').style.display='none'" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <div style="padding:16px 16px 0">
-      <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:6px">Note (reason for waiting)</div>
-      <input id="cb-label" value="${cur?.label||""}" placeholder="e.g. call back at 5, send docs, follow up…" style="width:100%;padding:13px 14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:12px;color:var(--text);font-size:14px;box-sizing:border-box;margin-bottom:16px" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='rgba(45,37,80,.8)'"/>
-
-      <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:8px">Quick select</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
-        ${opts.map(o=>{const sel=cur&&cur.ms===o.ms;return`<button onclick="setCb(${row},${o.ms})" style="padding:13px;border-radius:12px;font-size:14px;font-weight:700;background:${sel?"linear-gradient(135deg,#7c3aed,#c9a227)":"rgba(255,255,255,.05)"};border:1.5px solid ${sel?"transparent":"rgba(45,37,80,.8)"};color:${sel?"#fff":"rgba(255,255,255,.8)"};touch-action:manipulation">${sel?"✓ ":""}${o.l}</button>`;}).join("")}
+      <input id="cb-label" value="${cur?.label||""}" placeholder="Note (optional) — tap return when done"
+        style="width:100%;padding:14px;background:rgba(255,255,255,.07);border:2px solid rgba(245,158,11,.35);border-radius:14px;color:#fff;font-size:15px;font-weight:600;box-sizing:border-box;margin-bottom:16px;outline:none"
+        onfocus="this.style.borderColor='#f59e0b'" onblur="this.style.borderColor='rgba(245,158,11,.35)'"
+        onkeydown="if(event.key==='Enter'){this.blur();}"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        ${opts.map(o=>{const sel=cur&&cur.ms===o.ms;return`<button onclick="setCb(${row},${o.ms})" style="padding:13px 6px;border-radius:12px;font-size:13px;font-weight:700;background:${sel?"linear-gradient(135deg,#7c3aed,#c9a227)":"rgba(255,255,255,.05)"};border:1.5px solid ${sel?"transparent":"rgba(45,37,80,.8)"};color:${sel?"#fff":"rgba(255,255,255,.8)"};touch-action:manipulation">${sel?"✓ ":""}${o.l}</button>`;}).join("")}
       </div>
-
-      <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:8px">Specific time</div>
       <div style="display:flex;gap:8px;margin-bottom:16px">
-        <input type="datetime-local" id="cb-datetime" value="${dtDefault}" style="flex:1;padding:12px 14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:12px;color:var(--text);font-size:14px;box-sizing:border-box;color-scheme:dark" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='rgba(45,37,80,.8)'"/>
+        <input type="datetime-local" id="cb-datetime" value="${dtDefault}" style="flex:1;padding:12px 14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:12px;color:var(--text);font-size:13px;color-scheme:dark"/>
         <button onclick="setCustomTime(${row})" style="padding:12px 16px;border-radius:12px;background:rgba(245,158,11,.15);border:1.5px solid rgba(245,158,11,.4);color:#f59e0b;font-size:14px;font-weight:700;touch-action:manipulation;white-space:nowrap">Set time</button>
       </div>
-
-      ${cur?`<button onclick="clearCb(${row});$('cb-ov').style.display='none'" style="width:100%;margin-top:6px;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove timer</button>`:""}
-      <button onclick="$('cb-ov').style.display='none'" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;border:1.5px solid rgba(45,37,80,.8);color:var(--sub);font-size:14px;font-weight:600">Cancel</button>
+      ${cur?`<button onclick="clearCb(${row});$('cb-ov').style.display='none'" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove timer</button>`:""}
     </div>
   </div>`;
   ov.style.display="flex";
+  setTimeout(function(){const inp=document.getElementById("cb-label");if(inp)inp.focus();},100);
 }
 
 function setCustomTime(row){
@@ -1306,7 +1302,8 @@ function saveInfoEdit(){
 
 function setCb(row,ms,specificTime){
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
-  const labelEl=$("cb-label"),label=labelEl?labelEl.value.trim()||"Wait":"Wait";
+  const labelEl=$("cb-label");
+  const label=(labelEl?labelEl.value.trim():"")||"Wait";
 
   // Find the NEXT active lead BEFORE we mark this one as waiting
   const activePl=contacts.filter(function(ct){return !isWaiting(ct);});
@@ -1327,15 +1324,8 @@ function setCb(row,ms,specificTime){
     body:JSON.stringify({action:"setWait",sheet:s.tab,row,label,dueISO:dueDate.toISOString(),dueStr,waitStr})});
   $("cb-ov").style.display="none";
 
-  // Move to next lead in active pipeline (not back to card 1)
-  if(nextContact){
-    idx=contacts.indexOf(nextContact);
-    saveC();
-  } else if(ci>0){
-    // Was last lead — go to previous
-    idx=contacts.indexOf(activePl[ci-1]);
-    saveC();
-  }
+  if(nextContact){idx=contacts.indexOf(nextContact);saveC();}
+  else if(ci>0){idx=contacts.indexOf(activePl[ci-1]);saveC();}
   renderAll();startTick();toast(`⏱ ${label} — timer set`);
 }
 
