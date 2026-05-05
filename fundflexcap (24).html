@@ -1139,10 +1139,7 @@ function renderCard(){
       ${fi("Social",fmtSSN(c.social),false,false,"social")}
     </div>
   </div>
-  <div class="card-bottom">
-    <button class="card-bottom-btn gold" id="notes-btn-bottom">✎ Notes</button>
-    <button class="card-bottom-btn" onclick="openInfoEdit(${idx})">⚙ Contact Info</button>
-  </div>
+  <div style="height:8px"></div>
   ${c.approvals?`<div style="border-top:1px solid rgba(45,37,80,.6);padding:10px 12px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">📋 All Offers</div>
@@ -1158,7 +1155,6 @@ function renderCard(){
   </div>`;
   setTimeout(()=>{
     const nt=$("notes-tap");if(nt&&!isOnWait)nt.onclick=()=>openEdit(idx);
-    const nb=$("notes-btn-bottom");if(nb)nb.onclick=()=>openEdit(idx);
     // Status note textarea auto-resize + save on blur
     const sj=$("status-j-input");
     if(sj){
@@ -1886,9 +1882,20 @@ function clearPipelineFilter(){
 }
 
 function switchPipeline(p){
-  pipeline=p;
-  const list=getPipeline();
-  idx=list.length>0?contacts.indexOf(list[0]):0;
+  if(p==='active'){
+    // Going back to active — stay on current card, just change pipeline
+    pipeline=p;
+    // If current idx is in the active pool, stay there
+    // If not (e.g. was in wait-only lead), go to first active
+    const active=getPipeline();
+    const currentInActive=active.some(function(ct){return ct===contacts[idx];});
+    if(!currentInActive&&active.length>0){idx=contacts.indexOf(active[0]);}
+  } else {
+    // Entering wait or reminder view — jump to first in that section
+    pipeline=p;
+    const list=getPipeline();
+    if(list.length>0)idx=contacts.indexOf(list[0]);
+  }
   saveC();renderAll();
 }
 
@@ -1952,16 +1959,10 @@ function updateWaitBadge(){
 
 // ── REMINDER SYSTEM ───────────────────────────────────────────────────────────
 function openReminderPicker(row){
-  const ov=$("cb-ov"); // reuse the callback overlay
+  const ov=$("cb-ov");
   const stored=localStorage.getItem(REM_KEY(row));
   const cur=stored?JSON.parse(stored):null;
-  const opts=[
-    {l:"30 min",ms:1800000},{l:"1 hour",ms:3600000},{l:"2 hours",ms:7200000},
-    {l:"3 hours",ms:10800000},{l:"Tomorrow",ms:86400000},{l:"2 days",ms:172800000},
-    {l:"Next week",ms:604800000},{l:"2 weeks",ms:1209600000}
-  ];
-  const now2=new Date();const nextHour2=new Date(now2);nextHour2.setMinutes(0,0,0);nextHour2.setHours(nextHour2.getHours()+1);
-  const dtDefault=nextHour2.toISOString().slice(0,16);
+  const existingLabel=cur?.label||"";
 
   ov.innerHTML=`<div style="width:100%;background:linear-gradient(180deg,#1a1040,#130e2e);border-radius:24px 24px 0 0;border-top:2px solid rgba(245,158,11,.5);padding:0 0 50px;max-height:92vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.16,1,.3,1) both">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;border-bottom:1px solid rgba(45,37,80,.5)">
@@ -1969,31 +1970,76 @@ function openReminderPicker(row){
       <button onclick="$('cb-ov').style.display='none'" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:15px;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <div style="padding:20px 16px 0">
-
-      <!-- NOTE IS THE HERO -->
-      <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:8px">What do you need to do?</div>
-      <input id="rem-label-input" value="${cur?.label||""}" placeholder="e.g. Call back, Send docs, Follow up on approval…"
-        autofocus
-        style="width:100%;padding:16px 14px;background:rgba(255,255,255,.07);border:2px solid rgba(124,58,237,.5);border-radius:14px;color:#fff;font-size:16px;font-weight:600;box-sizing:border-box;margin-bottom:20px;outline:none"
-        onfocus="this.style.borderColor='#f59e0b'" onblur="this.style.borderColor='rgba(124,58,237,.5)'"/>
-
-      <!-- TIME IS OPTIONAL -->
-      <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:10px">When? (optional)</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-        ${opts.map(o=>`<button onclick="setReminder(${row},${o.ms})" style="padding:12px;border-radius:12px;font-size:14px;font-weight:700;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);color:rgba(255,255,255,.8);touch-action:manipulation">${o.l}</button>`).join("")}
+      <!-- STEP 1: NOTE -->
+      <div id="rem-step1">
+        <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:10px">What do you need to do?</div>
+        <input id="rem-label-input" value="${existingLabel}" placeholder="e.g. Call back, Send docs, Follow up…"
+          style="width:100%;padding:16px 14px;background:rgba(255,255,255,.07);border:2px solid rgba(245,158,11,.5);border-radius:14px;color:#fff;font-size:16px;font-weight:600;box-sizing:border-box;outline:none"
+          onfocus="this.style.borderColor='#f59e0b'" onblur="this.style.borderColor='rgba(245,158,11,.4)'"/>
+        <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:8px;text-align:center">Press Enter or tap Next to pick a time</div>
+        <button onclick="remShowTimeStep(${row})" style="width:100%;margin-top:14px;padding:14px;border-radius:14px;background:rgba(245,158,11,.15);border:1.5px solid rgba(245,158,11,.4);color:#f59e0b;font-size:15px;font-weight:800;touch-action:manipulation">Next →</button>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input type="datetime-local" id="rem-datetime" value="${dtDefault}" style="flex:1;padding:11px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);color:var(--text);font-size:13px;color-scheme:dark"/>
-        <button onclick="setReminderCustom(${row})" style="padding:11px 16px;border-radius:12px;background:rgba(124,58,237,.2);border:1.5px solid rgba(124,58,237,.4);color:#a78bfa;font-size:14px;font-weight:700;touch-action:manipulation;white-space:nowrap">Set time</button>
+      <!-- STEP 2: TIME (hidden until step 1 done) -->
+      <div id="rem-step2" style="display:none">
+        <div id="rem-step2-label" style="font-size:14px;font-weight:800;color:#fff;margin-bottom:14px;padding:12px 14px;background:rgba(245,158,11,.1);border-radius:12px;border:1px solid rgba(245,158,11,.3)"></div>
+        <div style="font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:10px">When? (optional)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          ${[{l:"30 min",ms:1800000},{l:"1 hour",ms:3600000},{l:"2 hours",ms:7200000},{l:"3 hours",ms:10800000},{l:"Tomorrow",ms:86400000},{l:"2 days",ms:172800000},{l:"Next week",ms:604800000},{l:"2 weeks",ms:1209600000}].map(o=>`<button onclick="setReminder(${row},${o.ms})" style="padding:12px;border-radius:12px;font-size:14px;font-weight:700;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);color:rgba(255,255,255,.8);touch-action:manipulation">${o.l}</button>`).join("")}
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input type="datetime-local" id="rem-datetime" style="flex:1;padding:11px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);color:var(--text);font-size:13px;color-scheme:dark"/>
+          <button onclick="setReminderCustom(${row})" style="padding:11px 16px;border-radius:12px;background:rgba(245,158,11,.15);border:1.5px solid rgba(245,158,11,.4);color:#f59e0b;font-size:14px;font-weight:700;touch-action:manipulation;white-space:nowrap">Set</button>
+        </div>
+        <button onclick="setReminder(${row},0,Date.now())" style="width:100%;padding:13px;border-radius:12px;background:rgba(52,211,153,.1);border:1.5px solid rgba(52,211,153,.3);color:#34d399;font-size:14px;font-weight:800;margin-bottom:10px;touch-action:manipulation">✓ Save without time</button>
+        <button onclick="remShowStep1()" style="width:100%;padding:10px;border-radius:12px;background:none;border:none;color:rgba(255,255,255,.3);font-size:13px;touch-action:manipulation">← Edit note</button>
       </div>
-      <button onclick="setReminder(${row},0,Date.now())" style="width:100%;padding:12px;border-radius:12px;background:rgba(245,158,11,.12);border:1.5px solid rgba(245,158,11,.35);color:#f59e0b;font-size:14px;font-weight:700;margin-bottom:16px;touch-action:manipulation">Save note only (no timer)</button>
-
-      ${cur?`<button onclick="clearReminder(${row});$('cb-ov').style.display='none'" style="width:100%;margin-top:4px;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove reminder</button>`:""}
+      ${cur?`<div style="margin-top:16px;border-top:1px solid rgba(45,37,80,.5);padding-top:12px"><button onclick="clearReminder(${row});$('cb-ov').style.display='none'" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:13px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove reminder</button></div>`:""}
     </div>
   </div>`;
+
   ov.style.display="flex";
-  // Auto-focus the note input
-  setTimeout(function(){const inp=document.getElementById("rem-label-input");if(inp)inp.focus();},100);
+
+  // Wire Enter key on note input to advance to step 2
+  setTimeout(function(){
+    const inp=document.getElementById("rem-label-input");
+    if(inp){
+      inp.focus();
+      if(existingLabel)inp.select();
+      inp.addEventListener("keydown",function(e){
+        if(e.key==="Enter"){e.preventDefault();remShowTimeStep(row);}
+      });
+    }
+    // If editing existing, jump straight to step 2
+    if(existingLabel)remShowTimeStep(row,true);
+  },80);
+}
+
+function remShowStep1(){
+  const s1=document.getElementById("rem-step1");
+  const s2=document.getElementById("rem-step2");
+  if(s1)s1.style.display="block";
+  if(s2)s2.style.display="none";
+  const inp=document.getElementById("rem-label-input");
+  if(inp)inp.focus();
+}
+
+function remShowTimeStep(row,skipEdit){
+  const inp=document.getElementById("rem-label-input");
+  const label=inp?inp.value.trim():"";
+  if(!label){
+    if(inp){inp.style.borderColor="#f87171";inp.focus();inp.placeholder="Type what you need to do first…";}
+    return;
+  }
+  const s1=document.getElementById("rem-step1");
+  const s2=document.getElementById("rem-step2");
+  const lbl=document.getElementById("rem-step2-label");
+  if(s1&&!skipEdit)s1.style.display="none";
+  if(s1&&skipEdit)s1.style.display="none";
+  if(s2)s2.style.display="block";
+  if(lbl)lbl.textContent="🔔 "+label;
+  // Set datetime default to next round hour
+  const dti=document.getElementById("rem-datetime");
+  if(dti&&!dti.value){const nh=new Date();nh.setMinutes(0,0,0);nh.setHours(nh.getHours()+1);dti.value=nh.toISOString().slice(0,16);}
 }
 
 function setReminder(row,ms,specificTime){
