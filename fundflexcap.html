@@ -448,7 +448,8 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
       <div id="sms-template-list"></div>
       <div style="margin-top:14px;border-top:1px solid rgba(45,37,80,.5);padding-top:14px" id="sms-ai-section">
         <input id="ai-sms-intent" type="text" placeholder="What do you want to say? (optional)" autocomplete="off" style="width:100%;background:rgba(0,0,0,.25);border:1px solid rgba(124,58,237,.25);border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;box-sizing:border-box;font-family:inherit;margin-bottom:8px">
-        <div id="ai-intent-chips" style="display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none;-ms-overflow-style:none">
+        <div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.42);margin:2px 0 4px">💼 MCA flow</div>
+        <div id="ai-intent-chips" style="display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;-ms-overflow-style:none">
           <button onclick="setIntent(this,'get email and how much they need')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📧 Get email</button>
           <button onclick="setIntent(this,'app sent — finish the application')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📤 App sent</button>
           <button onclick="setIntent(this,'approved — book the pitch call')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✅ Approved → call</button>
@@ -460,6 +461,17 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
           <button onclick="setIntent(this,'ignoring me — re-engage')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">👀 No reply</button>
           <button onclick="setIntent(this,'beat their current offer')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">⚖️ Beat current</button>
           <button onclick="setIntent(this,'refinance — about 50% paid in')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🔄 Refi</button>
+        </div>
+        <div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.42);margin:6px 0 4px">💳 0% Business Credit (Stacking)</div>
+        <div id="ai-intent-chips-cc" style="display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none;-ms-overflow-style:none">
+          <button onclick="setIntent(this,'CC stacking — get their credit score')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📊 Credit score</button>
+          <button onclick="setIntent(this,'CC stacking — pull tri-merge from creditheroscore.com')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📋 Pull tri-merge</button>
+          <button onclick="setIntent(this,'CC stacking — text or email me the credit report')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📤 Send report</button>
+          <button onclick="setIntent(this,'CC stacking — share creditheroscore login email and password so I can pull it myself')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🔑 Share login</button>
+          <button onclick="setIntent(this,'CC stacking — Expand All before saving the report PDF')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📄 Expand All tip</button>
+          <button onclick="setIntent(this,'CC stacking — bring in a co-signer with stronger credit')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">👥 Co-signer</button>
+          <button onclick="setIntent(this,'CC stacking — credit lines approved, book the call')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✅ CC approved → call</button>
+          <button onclick="setIntent(this,'CC stacking — follow up, still waiting on the credit report')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">⏳ Where's the report</button>
         </div>
         <button onclick="generateAISMS()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(201,162,39,.15));border:1px solid rgba(124,58,237,.35);color:#a78bfa;font-size:14px;font-weight:800;touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:8px" id="ai-sms-btn">✨ Write message with AI</button>
         <div id="ai-sms-cards" style="display:none;margin-top:12px;flex-direction:column;gap:10px"></div>
@@ -2865,6 +2877,23 @@ async function generateAISMS(){
 "\n\nSTAGE 9 — REPEAT / REFINANCE"+
 "\nOnce 50%+ paid in (typically 1-2 months later), reach out to refinance them up for more working capital."+
 "\nGoal: re-engage warmly, ask how much they want now."+
+"\n\n══ HOW SAM WORKS THE 0% BUSINESS CREDIT (STACKING) FLOW ══"+
+"\nThis is a different product than MCA. If the lead is on stacking (status mentions credit lines, tri-merge, 0% APR, stacking, etc., OR the intent says 'CC stacking'), use this flow instead."+
+"\n\nSTACK STAGE 1 — QUALIFY ON CREDIT SCORE"+
+"\nGoal: get their current credit score. 680+ unlocks the strongest 0% APR business credit lines."+
+"\nIf below 680: don't kill the deal — ask if they have a co-signer with stronger credit. A solid co-signer can save the file."+
+"\n\nSTACK STAGE 2 — PULL TRI-MERGE"+
+"\nGoal: get them to pull a tri-merge credit report from creditheroscore.com so we can see exactly which lines we can hit."+
+"\nKey detail: when they download the PDF they MUST click 'Expand All' first, otherwise we only see a summary view."+
+"\n\nSTACK STAGE 3 — GET THE REPORT TO SAM (3 ways, any of them works)"+
+"\n  (a) Text the PDF directly to Sam"+
+"\n  (b) Email the PDF to Sam"+
+"\n  (c) Share their creditheroscore.com email + password so Sam can log in and pull it himself (fastest — no waiting on the merchant)"+
+"\nFrame option (c) as the easy/fast path. The login is just for the report — nothing else."+
+"\n\nSTACK STAGE 4 — REVIEW + SUBMIT"+
+"\nSam reviews the report, picks the targets, submits to underwriters."+
+"\n\nSTACK STAGE 5 — APPROVED — BOOK THE PITCH CALL"+
+"\nSame rule as MCA: do not sell the deal in text. Get them on the phone so Sam can walk them through it and unlock better limits."+
 "\n\n══ GOLDEN RULES SAM LIVES BY ══"+
 "\n- A text moves the deal to the NEXT stage. It does not try to close the entire deal."+
 "\n- Selling happens on the phone, not in text. If we're at approved/pitch stage, the message must aim at booking a call — never give a hard close in text."+
@@ -2886,8 +2915,9 @@ async function generateAISMS(){
 "\n- Each message under 160 characters when possible."+
 "\n- Sound human and confident. No 'I hope this finds you well'. No 'just checking in!' (cliché)."+
 "\n- If the wait timer is ACTIVE, the deal is on hold — write messages they can send AFTER the wait expires (acknowledge the gap)."+
-"\n- Identify what stage of Sam's playbook this lead is at (use the lead status, status note, and notes). The drafts must aim at the NEXT step in that stage's flow — not skip ahead, not stay stuck."+
-"\n- If we're at the Approved stage, the goal of every draft is to BOOK A CALL. Do not try to close the deal in the text. The drafts should make the call feel valuable (better terms, more capital, understanding their business)."+
+"\n- Identify which product/flow this lead is on (MCA vs 0% Business Credit stacking) using the lead status, status note, intent, and notes. Pick the playbook that matches. If the intent explicitly says 'CC stacking', use the stacking playbook even if the status looks MCA-ish."+
+"\n- Identify what stage of the relevant playbook this lead is at. The drafts must aim at the NEXT step in that stage's flow — not skip ahead, not stay stuck."+
+"\n- If we're at the Approved stage of either flow, the goal of every draft is to BOOK A CALL. Do not try to close the deal in the text. The drafts should make the call feel valuable (better terms, more capital, understanding their business)."+
 "\n- Never use exclamation marks more than once across all 3 messages combined."+
 (intent?"\n- The intent \""+intent+"\" is non-negotiable — it must be the substance of every draft. The angle determines HOW to say it, not WHAT to say.":"")+
 "\n\nOUTPUT FORMAT — return ONLY this JSON, no markdown fences, no explanation:"+
