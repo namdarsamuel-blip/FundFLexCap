@@ -92,7 +92,7 @@ button,input,textarea{font-family:inherit;border:none;outline:none;cursor:pointe
 .nav-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 14px;background:rgba(13,10,26,.97);border-bottom:1px solid var(--border);position:fixed;top:62px;left:0;right:0;z-index:85;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
 .nav-count{font-size:13px;font-weight:800;color:var(--gold);background:linear-gradient(135deg,rgba(124,58,237,.2),rgba(201,162,39,.15));border:1px solid rgba(201,162,39,.3);border-radius:20px;padding:4px 16px}
 .nav-hint{font-size:11px;color:rgba(255,255,255,.2);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-.screen{display:none;padding:108px 10px 80px;animation:fadeUp .25s ease both}
+.screen{display:none;padding:10px 10px 80px;animation:fadeUp .25s ease both}
 .screen.active{display:block}
 #lead-card-wrap{position:relative}
 .swipe-hint{position:absolute;top:50%;transform:translateY(-50%);font-size:26px;font-weight:900;pointer-events:none;opacity:0;transition:opacity .1s;z-index:5}
@@ -2761,6 +2761,17 @@ async function generateAISMS(){
 
   if(typeof startAutoRefresh==="function")startAutoRefresh();
   if(typeof startTick==="function")startTick();
+  // Adjust body padding to match actual fixed bar heights
+  function adjustPadding(){
+    const tb=document.querySelector('.topbar');
+    const nb=document.querySelector('.nav-bar');
+    if(tb&&nb){
+      const h=tb.offsetHeight+nb.offsetHeight;
+      document.querySelector('.screen.active').style.paddingTop=(h+6)+'px';
+    }
+  }
+  adjustPadding();
+  window.addEventListener('resize',adjustPadding);
 })();
 </script>
 </body>
