@@ -2707,17 +2707,16 @@ async function generateAISMS(){
   const first=(c.name||"").split(" ")[0]||"there";
   const statusLabel=(c.leadStatus||"").replace(/^[\d.]+\.?\s*/,"").trim();
   const bestOffer=c.approvals?(c.approvals.split("\n")[0].replace(/https?:\/\/\S+/g,"").trim()):"";
-  const prompt="You are Sam, a confident MCA/business credit broker. Write ONE short natural SMS to "+first+" ("+(c.company||"a merchant")+").\n\nLead status: "+(statusLabel||"unknown")+"\nNotes: "+(c.notes||"none").slice(0,400)+"\nWants: "+(c.wants||"not specified")+"\nCredit score: "+(c.credit||"unknown")+"\nBest offer: "+(bestOffer||"none yet")+"\nStatus note: "+(c.status||"")+"\n\nWrite the single most relevant message to send right now. Under 160 chars if possible. Human, confident, never salesy. Output ONLY the SMS text.";
-  const apiKey="AIzaSyBr9d7oKjhIiGztknS0tvqTAqKpnokE51k";
+  const promptText="You are Sam, a confident MCA/business credit broker. Write ONE short natural SMS to "+first+" ("+(c.company||"a merchant")+").\n\nLead status: "+(statusLabel||"unknown")+"\nNotes: "+(c.notes||"none").slice(0,400)+"\nWants: "+(c.wants||"not specified")+"\nCredit score: "+(c.credit||"unknown")+"\nBest offer: "+(bestOffer||"none yet")+"\nStatus note: "+(c.status||"")+"\n\nWrite the single most relevant message to send right now. Under 160 chars if possible. Human, confident, never salesy. Output ONLY the SMS text.";
   try{
-    const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key="+apiKey,{
+    const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyBr9d7oKjhIiGztknS0tvqTAqKpnokE51k",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+      body:JSON.stringify({contents:[{parts:[{text:promptText}]}]})
     });
     const data=await res.json();
     if(data.error){toast("AI error: "+data.error.message);btn.innerHTML="✨ Write message with AI";btn.disabled=false;return;}
-    const msg=((data.candidates||[])[0]||{content:{parts:[{text:""}]}}).content.parts[0].text.trim();
+    const msg=(((data.candidates||[])[0]||{}).content||{parts:[{text:""}]}).parts[0].text.trim();
     if(msg){
       if(result)result.style.display="block";
       if(ta){ta.value=msg;ta.style.height="auto";ta.style.height=ta.scrollHeight+"px";}
