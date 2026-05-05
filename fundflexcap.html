@@ -2709,7 +2709,7 @@ async function generateAISMS(){
   const bestOffer=c.approvals?(c.approvals.split("\n")[0].replace(/https?:\/\/\S+/g,"").trim()):"";
   const promptText="You are Sam, a confident MCA/business credit broker. Write ONE short natural SMS to "+first+" ("+(c.company||"a merchant")+").\n\nLead status: "+(statusLabel||"unknown")+"\nNotes: "+(c.notes||"none").slice(0,400)+"\nWants: "+(c.wants||"not specified")+"\nCredit score: "+(c.credit||"unknown")+"\nBest offer: "+(bestOffer||"none yet")+"\nStatus note: "+(c.status||"")+"\n\nWrite the single most relevant message to send right now. Under 160 chars if possible. Human, confident, never salesy. Output ONLY the SMS text.";
   try{
-    const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=AIzaSyBr9d7oKjhIiGztknS0tvqTAqKpnokE51k",{
+    const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyC0rzEmNhqtXGXdaJTpgl4bxyUPJ5XNe0E",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({contents:[{parts:[{text:promptText}]}]})
