@@ -696,39 +696,43 @@ function filterList(q){
     });
   }
   if($("sh-count"))$("sh-count").textContent=list.length+" lead"+(list.length!==1?"s":"");
-  if(!list.length){$("c-list").innerHTML=`<div class="empty">No matches</div>`;return;}
+  if(!list.length){$("c-list").innerHTML='<div class="empty">No matches</div>';return;}
   $("c-list").innerHTML=list.map(c=>{
     const ri=contacts.indexOf(c);const col=avColor(ri);const ss=statusStyle(c.leadStatus);
     const statusLabel=(c.leadStatus||"").replace(/^[\d.]+\.?\s*/,"").split(" — ")[0].trim();
     const firstAp=c.approvals?c.approvals.split("\n")[0].replace(/https?:\/\/\S+/g,"").trim():"";
     const cOnWait = !!localStorage.getItem(CB_KEY(c.row)) || ((c.leadStatus||"").toLowerCase().includes('absent') || (c.leadStatus||"").toLowerCase().includes('wait'));
-    return`<div class="c-item" style="${cOnWait?'opacity:.55;':''}" onclick="jumpTo(${ri})">
-      <div class="c-row">
-        <div class="c-ava" style="background:linear-gradient(135deg,${col},${col}88)">${ini(c.name)}${cOnWait?`<div style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid var(--bg)"></div>`:""}</div>
-        <div style="flex:1;min-width:0">
-          <div class="c-nm">${c.name||"—"}${cOnWait?" ⏸":""}</div>
-          <div class="c-sb">${c.company||"—"}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          ${ss&&statusLabel?`<span class="c-tag-badge" style="background:${ss.bg};border:1px solid ${ss.border};color:${ss.color}">${statusLabel}</span>`:""}
-          <button class="c-edit-btn" onclick="openEdit(${ri});event.stopPropagation()">✏️</button>
-        </div>
-      </div>
-      <div class="c-meta" style="padding:0 12px 6px;gap:5px;flex-wrap:wrap">
-        ${fmtPhone(c.phone)?`<span class="c-chip ph">📞 ${fmtPhone(c.phone)}</span>`:""}
-        ${c.credit?`<span style="background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.25);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:700;color:#c9a227">⭐ ${c.credit}</span>`:""}
-        ${c.wants?`<span style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:700;color:#a78bfa;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block">🎯 ${c.wants}</span>`:""}
-        ${firstAp?`<span class="c-chip ap">💰 ${firstAp}</span>`:""}
-      </div>
-      ${c.notes?`<div style="padding:0 12px 10px"><div style="font-size:11px;color:rgba(255,255,255,.38);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📝 ${c.notes.split('\n')[0].slice(0,80)}</div></div>`:""}
-    </div>`;
+    const waitDot=cOnWait?'<div style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid var(--bg)"></div>':"";
+    const statusBadge=ss&&statusLabel?('<span class="c-tag-badge" style="background:'+ss.bg+';border:1px solid '+ss.border+';color:'+ss.color+'">'+statusLabel+'</span>'):"";
+    const chipPhone=fmtPhone(c.phone)?('<span class="c-chip ph">📞 '+fmtPhone(c.phone)+'</span>'):"";
+    const chipScore=c.credit?('<span style="background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.25);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:700;color:#c9a227">⭐ '+c.credit+'</span>'):"";
+    const chipWants=c.wants?('<span style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:700;color:#a78bfa;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block">🎯 '+c.wants+'</span>'):"";
+    const chipAp=firstAp?('<span class="c-chip ap">💰 '+firstAp+'</span>'):"";
+    const noteSnippet=c.notes?('<div style="padding:0 12px 10px"><div style="font-size:11px;color:rgba(255,255,255,.38);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📝 '+c.notes.split('\n')[0].slice(0,80)+'</div></div>'):"";
+    return '<div class="c-item" style="'+(cOnWait?'opacity:.55;':'')+'" onclick="jumpTo('+ri+')">'
+      +'<div class="c-row">'
+        +'<div class="c-ava" style="background:linear-gradient(135deg,'+col+','+col+'88)">'+ini(c.name)+waitDot+'</div>'
+        +'<div style="flex:1;min-width:0">'
+          +'<div class="c-nm">'+(c.name||"—")+(cOnWait?" ⏸":"")+'</div>'
+          +'<div class="c-sb">'+(c.company||"—")+'</div>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
+          +statusBadge
+          +'<button class="c-edit-btn" onclick="openEdit('+ri+');event.stopPropagation()">✏️</button>'
+        +'</div>'
+      +'</div>'
+      +'<div class="c-meta" style="padding:0 12px 6px;gap:5px;flex-wrap:wrap">'
+        +chipPhone+chipScore+chipWants+chipAp
+      +'</div>'
+      +noteSnippet
+    +'</div>';
   }).join("");
 }
 
 function fmtCountdown(due,label){
   const diff=due-Date.now(),abs=Math.abs(diff);
   const ss=Math.floor(abs/1000)%60,mm=Math.floor(abs/60000)%60,hh=Math.floor(abs/3600000)%24,dd=Math.floor(abs/86400000);
-  const time=dd>0?`${dd}d ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`:`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+  const time=dd>0?(dd+'d '+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0')):(String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0'));
   if(diff<0)return`⏱ OVERDUE ${time}`;
   return`⏱ ${label} — ${time}`;
 }
@@ -807,7 +811,7 @@ function offerCardHtml(o){
   const normStyle="border:1px solid transparent;border-radius:8px;";
   const cell=(lbl,val,valClass,isPrim)=>
     `<div class="offer-cell" style="text-align:center;${isPrim?priStyle:normStyle}">
-      <div class="offer-cell-lbl">${isPrim?`<span style="color:var(--gold);font-weight:900">${lbl}</span>`:lbl}</div>
+      <div class="offer-cell-lbl">${isPrim?('<span style="color:var(--gold);font-weight:900">'+lbl+'</span>'):lbl}</div>
       <div class="offer-cell-val ${valClass}" style="text-align:center">${val}</div>
     </div>`;
   return`<div class="offer-card">
@@ -894,7 +898,7 @@ function openCallbackPicker(row){
         <input type="datetime-local" id="cb-datetime" value="${dtDefault}" style="flex:1;padding:12px 14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:12px;color:var(--text);font-size:13px;color-scheme:dark"/>
         <button onclick="setCustomTime(${row})" style="padding:12px 16px;border-radius:12px;background:rgba(245,158,11,.15);border:1.5px solid rgba(245,158,11,.4);color:#f59e0b;font-size:14px;font-weight:700;touch-action:manipulation;white-space:nowrap">Set time</button>
       </div>
-      ${cur?`<button onclick="clearCb(${row});$('cb-ov').style.display='none'" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove timer</button>`:""}
+      "+(cur?'<button onclick="clearCb('+row+');$(\"cb-ov\").style.display=\"none\"" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove timer</button>':"")+"
     </div>
   </div>`;
   ov.style.display="flex";
@@ -972,13 +976,13 @@ function buildStatusPickerUI(ri){
   function btnHtml(o){
     const isCur=cur&&o.raw.trim().toLowerCase()===curLow;
     const ss=statusStyle(o.raw);
-    const dot=ss?`<span style="width:8px;height:8px;border-radius:50%;background:${ss.color};flex-shrink:0;display:inline-block;margin-right:8px"></span>`:`<span style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0;display:inline-block;margin-right:8px"></span>`;
+    const dot=ss?('<span style="width:8px;height:8px;border-radius:50%;background:'+ss.color+';flex-shrink:0;display:inline-block;margin-right:8px"></span>'):('<span style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0;display:inline-block;margin-right:8px"></span>');
     return`<button class="sp-opt${isCur?" selected":""}" data-val="${o.raw}" onclick="pickStatus(this)" style="display:flex;align-items:center;text-align:left;margin-bottom:6px">${dot}${o.label}</button>`;
   }
 
   $("sp-list").innerHTML=
     favs.map(btnHtml).join("")+
-    (rest.length?`<div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.2);padding:10px 0 6px;border-top:1px solid rgba(45,37,80,.5);margin-top:4px">More</div>`+rest.map(btnHtml).join(""):"");
+    (rest.length?('<div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.2);padding:10px 0 6px;border-top:1px solid rgba(45,37,80,.5);margin-top:4px">More</div>'+rest.map(btnHtml).join("")):"");
 }
 
 function openStatusPicker(ri){
@@ -1121,7 +1125,7 @@ function renderCard(){
   const notesHtml=notesParas.length?notesParas.map(p=>`<div class="note-para">${p}</div>`).join(""):`<div class="notes-empty"><span>No notes yet</span><span class="add-note-hint">+ Add note</span></div>`;
   function fi(label,val,hi=false,full=false,field=""){
     const style=full?"grid-column:1/-1":"";
-    const tap=field?`onclick="inlineEditField(${idx},'${field}','${label}',this)"`:"";
+    const tap=field?('onclick="inlineEditField('+idx+',\''+field+'\',\''+label+'\',this)"'):"";
     return`<div ${tap} style="${style};padding:8px 6px;border-bottom:1px solid rgba(45,37,80,.5);border-right:1px solid rgba(45,37,80,.5);text-align:center;${field?"cursor:pointer":""}">
       <div style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);margin-bottom:2px">${label}${field?'<span style="color:rgba(255,255,255,.2);font-size:8px;margin-left:3px">✎</span>':''}</div>
       <div style="font-size:13px;font-weight:${hi?800:600};color:${hi?"var(--gold)":"var(--text)"};${!val?"opacity:.3":""}line-height:1.2;word-break:break-word">${val||"—"}</div>
@@ -1245,7 +1249,8 @@ function renderOfferCards(str){
   if(parsed.length){const sorted=[...parsed].sort((a,b)=>parseInt(b.amount.replace(/\D/g,""))-parseInt(a.amount.replace(/\D/g,"")));best=sorted[0];rest=[...sorted.slice(1),...unparsed];}
   else{best=unparsed[0];rest=unparsed.slice(1);}
   const uid="mo_"+Math.random().toString(36).slice(2);
-  return`<div class="offers-section"><div class="section-label"><span>💰 Best Offer</span></div>${offerCardHtml(best)}${rest.length?`<div id="${uid}" style="display:none">${rest.map(offerCardHtml).join("")}</div><button class="more-offers-btn" onclick="var e=document.getElementById('${uid}');var o=e.style.display==='block';e.style.display=o?'none':'block';this.textContent=o?'▼ ${rest.length} more offer${rest.length>1?'s':''}':'▲ Hide'">▼ ${rest.length} more offer${rest.length>1?"s":""}</button>`:""}</div>`;
+  const moreHtml=rest.length?('<div id="'+uid+'" style="display:none">'+rest.map(offerCardHtml).join('')+'</div><button class="more-offers-btn" onclick="var e=document.getElementById(\''+uid+'\');var o=e.style.display===\'block\';e.style.display=o?\'none\':\'block\';this.textContent=o?\'▼ '+rest.length+' more offer'+(rest.length>1?'s':'')+'\':\'▲ Hide\'">▼ '+rest.length+' more offer'+(rest.length>1?'s':'')+'</button>'):'';
+  return '<div class="offers-section"><div class="section-label"><span>💰 Best Offer</span></div>'+offerCardHtml(best)+moreHtml+'</div>';
 }
 
 function restoreReminderTimers(){
@@ -2036,7 +2041,7 @@ function openReminderPicker(row){
         <button onclick="setReminder(${row},0,Date.now())" style="width:100%;padding:13px;border-radius:12px;background:rgba(52,211,153,.1);border:1.5px solid rgba(52,211,153,.3);color:#34d399;font-size:14px;font-weight:800;margin-bottom:10px;touch-action:manipulation">✓ Save without time</button>
         <button onclick="remShowStep1()" style="width:100%;padding:10px;border-radius:12px;background:none;border:none;color:rgba(255,255,255,.3);font-size:13px;touch-action:manipulation">← Edit note</button>
       </div>
-      ${cur?`<div style="margin-top:16px;border-top:1px solid rgba(45,37,80,.5);padding-top:12px"><button onclick="clearReminder(${row});$('cb-ov').style.display='none'" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:13px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove reminder</button></div>`:""}
+      "+(cur?'<div style="margin-top:16px;border-top:1px solid rgba(45,37,80,.5);padding-top:12px"><button onclick="clearReminder('+row+');$(\\"cb-ov\\").style.display=\\"none\\"" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove reminder</button></div>':"")+"
     </div>
   </div>`;
 
