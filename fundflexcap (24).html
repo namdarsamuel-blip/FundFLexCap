@@ -1109,7 +1109,8 @@ function renderAll(){renderCard();if($("search-box"))filterList($("search-box").
 
 function renderCard(){
   const wrap=$("lead-card");if(!wrap)return;
-  if(!contacts.length){wrap.innerHTML=`<div class="empty"><span class="empty-icon">📋</span>No leads loaded.<br>Tap ↻ to sync.</div>`;return;}
+  if(!contacts.length){wrap.innerHTML='<div class="empty"><span class="empty-icon">📋</span>No leads loaded.<br>Tap ↻ to sync.</div>';return;}
+  try{
   const c=contacts[idx];const col=avColor(idx);const ph=c.phone?c.phone.replace(/\D/g,""):null;
   const ss=statusStyle(c.leadStatus);
   const rawLabel=(c.leadStatus||"").replace(/^[\d\.]+\.?\s*/,"").split(" — ")[0].trim();
@@ -1230,6 +1231,10 @@ function renderCard(){
     }
   },0);
   updateNavCount();
+  }catch(err){
+    wrap.innerHTML='<div class="empty"><span class="empty-icon">⚠️</span>Card error: '+err.message+'<br><small>'+err.stack.split('\n')[0]+'</small></div>';
+    console.error('renderCard error:',err);
+  }
 }
 
 function renderOfferCards(str){
