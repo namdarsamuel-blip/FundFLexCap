@@ -89,10 +89,10 @@ button,input,textarea{font-family:inherit;border:none;outline:none;cursor:pointe
 .tb-btn.spinning{animation:spin .7s linear infinite;color:var(--gold);border-color:var(--gold)}
 .tb-btn.ok{color:var(--green);border-color:var(--green)}
 .tb-btn.fail{color:var(--red);border-color:var(--red)}
-.nav-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 14px;background:rgba(13,10,26,.95);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:80;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.nav-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 14px;background:rgba(13,10,26,.97);border-bottom:1px solid var(--border);position:fixed;top:62px;left:0;right:0;z-index:85;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
 .nav-count{font-size:13px;font-weight:800;color:var(--gold);background:linear-gradient(135deg,rgba(124,58,237,.2),rgba(201,162,39,.15));border:1px solid rgba(201,162,39,.3);border-radius:20px;padding:4px 16px}
 .nav-hint{font-size:11px;color:rgba(255,255,255,.2);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-.screen{display:none;padding:10px 10px 80px;animation:fadeUp .25s ease both}
+.screen{display:none;padding:116px 10px 80px;animation:fadeUp .25s ease both}
 .screen.active{display:block}
 #lead-card-wrap{position:relative}
 .swipe-hint{position:absolute;top:50%;transform:translateY(-50%);font-size:26px;font-weight:900;pointer-events:none;opacity:0;transition:opacity .1s;z-index:5}
@@ -1540,35 +1540,37 @@ async function runSortMacro(){
 
 async function syncNow(goFirst=false,silent=false){
   if(!silent)syncState("spin");
+  const syncingSheet=activeSheet;
+  const s=currentSheet(),url=s.url||SHEET_URL;
   try{
-    const s=currentSheet(),url=s.url||SHEET_URL;
     const res=await fetch(url+"?t="+Date.now()+"&sheet="+encodeURIComponent(s.tab));
-    const text=await res.text();let data;
+    const text=await res.text();
+    if(activeSheet!==syncingSheet)return;
+    let data;
     try{data=JSON.parse(text);}catch{if(!silent){syncState("fail");toast("⚠️ Script error");}return;}
     if(data.error){if(!silent){syncState("fail");toast("⚠️ "+data.error);}return;}
     if(!Array.isArray(data)){if(!silent){syncState("fail");toast("⚠️ Bad response");}return;}
-    const prev=contacts[idx]?.name;contacts=data;
+    const prevPhone=contacts[idx]?.phone;
+    const prevName=contacts[idx]?.name;
+    contacts=data;
     if(goFirst){
-      // Always start on first non-waiting lead
       positionOnFirstActive();
-    } else if(prev){
-      const ni=contacts.findIndex(c=>c.name===prev);
+    } else if(prevPhone){
+      const ni=contacts.findIndex(c=>c.phone===prevPhone);
       if(ni!==-1)idx=ni;
+      else if(prevName){const ni2=contacts.findIndex(c=>c.name===prevName);if(ni2!==-1)idx=ni2;}
     }
-    // If in active pipeline but current idx is a waiting lead, jump to first active
     if(pipeline==='active'&&contacts[idx]&&isWaiting(contacts[idx])){
       positionOnFirstActive();
     }
     idx=Math.max(0,Math.min(idx,contacts.length-1));
     saveC();restoreWaitTimers();restoreReminderTimers();
-    // Build status list from contacts (fast), then fetch from sheet in background (accurate)
     syncStatusesFromContacts();
     if(!silent)syncState("ok");renderAll();
-    // Background: fetch real dropdown values from sheet to update status picker
-    const bgUrl=s.url||SHEET_URL;
-    fetch(bgUrl+"?action=statuses&sheet="+encodeURIComponent(s.tab)+"&t="+Date.now())
+    fetch((s.url||SHEET_URL)+"?action=statuses&sheet="+encodeURIComponent(s.tab)+"&t="+Date.now())
       .then(function(r){return r.text();})
       .then(function(text){
+        if(activeSheet!==syncingSheet)return;
         try{
           const d=JSON.parse(text);
           if(d.statuses&&d.statuses.length){
@@ -1582,27 +1584,17 @@ async function syncNow(goFirst=false,silent=false){
   }catch(err){if(!silent){syncState("fail");toast("⚠️ "+err.message);}}
 }
 
-function syncState(s){const b=$("sync-btn");b.className="tb-btn";b.textContent="↻";if(s==="spin"){b.classList.add("spinning");}else if(s==="ok"){b.classList.add("ok");b.textContent="✓";setTimeout(()=>{b.className="tb-btn";b.textContent="↻";},1800);}else if(s==="fail"){b.classList.add("fail");b.textContent="✗";setTimeout(()=>{b.className="tb-btn";b.textContent="↻";},2500);}}
-
-function toast(msg,dur=2400){const t=$("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),dur);}
-
-function isWaiting(ct){
-  if(localStorage.getItem(CB_KEY(ct.row)))return true;
-  const w=(ct.waitUntil||"").trim();if(!w)return false;
-  const m=w.match(/^\[([^\]]+)\]\s+until\s+(.+)$/i);
-  const due=m?parseWaitDate(m[2]):parseWaitDate(w);
-  return due!==null&&due>Date.now();
-}
-
 function selectSheet(i){
   if(i===activeSheet&&contacts.length>0)return;
-  activeSheet=i;localStorage.setItem("ffc_activeSheetIdx",String(i));
-  contacts=[];idx=0;buildSwitcher();
+  activeSheet=i;
+  localStorage.setItem("ffc_activeSheetIdx",String(i));
+  contacts=[];idx=0;pipeline="active";activeStatusFilter="all";
+  Object.keys(_rowCache).forEach(function(k){delete _rowCache[k];});
+  buildSwitcher();
   const w=$("lead-card");
   if(w)w.innerHTML='<div class="empty"><span class="empty-icon">⏳</span>Loading '+SHEETS[i].label+"…</div>";
   syncNow(true,false);
 }
-
 function showSheetPicker(){
   const ex=document.getElementById("sheet-picker-ov");if(ex)ex.remove();
   const ov=document.createElement("div");
