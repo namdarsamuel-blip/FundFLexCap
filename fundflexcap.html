@@ -81,7 +81,7 @@ button,input,textarea{font-family:inherit;border:none;outline:none;cursor:pointe
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-.topbar{background:rgba(13,10,26,.92);border-bottom:1px solid var(--border);padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between;position:fixed;top:0;left:0;right:0;z-index:90;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.topbar{background:rgba(13,10,26,.92);border-bottom:1px solid var(--border);padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between;position:fixed;top:0;left:0;right:0;z-index:80;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);will-change:transform}
 .topbar.hidden{transform:translateY(-100%)}
 .wordmark{font-size:20px;font-weight:900;letter-spacing:-.5px;color:#fff}
 .wordmark em{color:var(--gold);font-style:normal}
@@ -90,7 +90,7 @@ button,input,textarea{font-family:inherit;border:none;outline:none;cursor:pointe
 .tb-btn.spinning{animation:spin .7s linear infinite;color:var(--gold);border-color:var(--gold)}
 .tb-btn.ok{color:var(--green);border-color:var(--green)}
 .tb-btn.fail{color:var(--red);border-color:var(--red)}
-.nav-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 14px;background:rgba(13,10,26,.97);border-bottom:1px solid var(--border);position:fixed;left:0;right:0;z-index:85;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.nav-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 14px;background:rgba(13,10,26,.97);border-bottom:1px solid var(--border);position:fixed;top:0;left:0;right:0;z-index:95;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
 .nav-count{font-size:13px;font-weight:800;color:var(--gold);background:linear-gradient(135deg,rgba(124,58,237,.2),rgba(201,162,39,.15));border:1px solid rgba(201,162,39,.3);border-radius:20px;padding:4px 16px}
 .nav-hint{font-size:11px;color:rgba(255,255,255,.2);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .screen{display:none;padding:10px 10px 80px;animation:fadeUp .25s ease both}
@@ -3147,87 +3147,73 @@ async function generateAISMS(){
 
   if(typeof startAutoRefresh==="function")startAutoRefresh();
   if(typeof startTick==="function")startTick();
-  // Dynamic padding — runs once at boot, again on resize
+  // Layout rule:
+  //   - Nav-bar is GLUED to top:0 forever. Never moves. Nothing can appear above it.
+  //   - Topbar lives at negative top (offscreen above the nav-bar by default).
+  //     It slides DOWN into view via transform, only when at scroll-top.
   function adjustPadding(){
     const tb=document.querySelector('.topbar');
     const nb=document.querySelector('.nav-bar');
     if(!tb||!nb)return;
     const tbH=tb.offsetHeight;
-    // Nav-bar sits directly below topbar at top:tbH. We never change this — we move both via transform.
-    nb.style.top=tbH+'px';
-    const totalH=tbH+nb.offsetHeight;
+    const nbH=nb.offsetHeight;
+    // Topbar is parked offscreen above; transform slides it down into view when wanted.
+    tb.style.top='-'+tbH+'px';
+    nb.style.top='0px';
     const screen=document.querySelector('.screen.active');
-    if(screen)screen.style.paddingTop=(totalH+6)+'px';
+    // When at scroll-top, both bars are visible (nav at 0, topbar pushed down to 0..tbH region above nav)
+    // Wait — that would put topbar above nav-bar. But user wants nothing above nav-bar.
+    // So topbar visible state means: nav-bar pushed DOWN by topbar height. That's the top-of-page rest state.
+    if(screen)screen.style.paddingTop=(nbH+tbH+6)+'px';
   }
   adjustPadding();
   window.addEventListener('resize',adjustPadding);
 
-  // Smooth scroll-hide for the topbar — rAF-throttled, distance-based hysteresis
-  // Both bars share the same transform so they move as one unit, no gap can appear between them.
+  // Topbar visibility:
+  //   - At scrollY <= 10: topbar fully visible (translates down by its height + nav-bar height,
+  //     so it sits BELOW the nav-bar at the top of content)
+  //   - At scrollY >= 80: topbar fully hidden (parked offscreen above)
+  //   - Between: smooth interpolation
+  // This way the nav bar is ALWAYS the topmost element on screen.
   (function(){
-    const HIDE_THRESHOLD=12;     // px scrolled in same direction before triggering hide/show
-    const TOP_LOCK=80;            // never hide while scroll is below this (prevents accidental hide near top)
-    let lastY=window.scrollY;
-    let dirAccum=0;               // accumulated distance in current direction
-    let hidden=false;             // current visible state
+    const SHOW_BELOW=10;
+    const HIDE_ABOVE=80;
     let ticking=false;
-    let tbH=0;                    // cached topbar height for the transform distance
+    let tbH=0,nbH=0;
 
-    function refreshTbH(){
-      const tb=document.querySelector('.topbar');
-      tbH=tb?tb.offsetHeight:0;
-    }
-    refreshTbH();
-    window.addEventListener('resize',refreshTbH);
-
-    function applyState(){
+    function refreshHeights(){
       const tb=document.querySelector('.topbar');
       const nb=document.querySelector('.nav-bar');
-      if(!tb||!nb)return;
-      if(hidden){
-        // Slide both bars up by the topbar height — nav stays glued to topbar's bottom edge
-        tb.style.transform='translateY(-100%)';
-        nb.style.transform='translateY(-'+tbH+'px)';
-        tb.classList.add('hidden');
-      } else {
-        tb.style.transform='';
-        nb.style.transform='';
-        tb.classList.remove('hidden');
-      }
+      tbH=tb?tb.offsetHeight:0;
+      nbH=nb?nb.offsetHeight:0;
+    }
+    refreshHeights();
+    window.addEventListener('resize',refreshHeights);
+
+    function update(){
+      const tb=document.querySelector('.topbar');
+      if(!tb)return;
+      const y=window.scrollY;
+      // Topbar fully shown = translateY(tbH + nbH) so it sits directly under nav-bar
+      // Topbar fully hidden = translateY(0) so it stays at its negative-top park position
+      let ratio;
+      if(y<=SHOW_BELOW)ratio=1;
+      else if(y>=HIDE_ABOVE)ratio=0;
+      else ratio=1-((y-SHOW_BELOW)/(HIDE_ABOVE-SHOW_BELOW));
+      const offset=(tbH+nbH)*ratio;
+      tb.style.transform='translateY('+offset+'px)';
     }
 
-    function onScroll(){
+    update();
+
+    window.addEventListener('scroll',function(){
       if(ticking)return;
       ticking=true;
       requestAnimationFrame(function(){
-        const y=window.scrollY;
-        const dy=y-lastY;
-
-        // Always show at the very top
-        if(y<=TOP_LOCK){
-          if(hidden){hidden=false;applyState();}
-          dirAccum=0;
-          lastY=y;
-          ticking=false;
-          return;
-        }
-
-        // Reset accumulator when direction flips
-        if((dy>0&&dirAccum<0)||(dy<0&&dirAccum>0))dirAccum=0;
-        dirAccum+=dy;
-
-        if(dirAccum>HIDE_THRESHOLD&&!hidden){
-          hidden=true;applyState();dirAccum=0;
-        } else if(dirAccum<-HIDE_THRESHOLD&&hidden){
-          hidden=false;applyState();dirAccum=0;
-        }
-
-        lastY=y;
+        update();
         ticking=false;
       });
-    }
-
-    window.addEventListener('scroll',onScroll,{passive:true});
+    },{passive:true});
   })();
 })();
 </script>
