@@ -447,32 +447,29 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
     <div style="overflow-y:auto;padding:12px 14px 24px;-webkit-overflow-scrolling:touch">
       <div id="sms-template-list"></div>
       <div style="margin-top:14px;border-top:1px solid rgba(45,37,80,.5);padding-top:14px" id="sms-ai-section">
-        <input id="ai-sms-intent" type="text" placeholder="What do you want to say? (optional)" autocomplete="off" style="width:100%;background:rgba(0,0,0,.25);border:1px solid rgba(124,58,237,.25);border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;box-sizing:border-box;font-family:inherit;margin-bottom:8px">
+        <input id="ai-sms-intent" type="text" placeholder="Tap a chip below or type your own — then tap the AI button" autocomplete="off" style="width:100%;background:rgba(0,0,0,.25);border:1px solid rgba(124,58,237,.25);border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;box-sizing:border-box;font-family:inherit;margin-bottom:8px">
         <div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.42);margin:2px 0 4px">💼 MCA flow</div>
         <div id="ai-intent-chips" style="display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;-ms-overflow-style:none">
-          <button onclick="setIntent(this,'get email and how much they need')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📧 Get email</button>
-          <button onclick="setIntent(this,'app sent — finish the application')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📤 App sent</button>
-          <button onclick="setIntent(this,'approved — book the pitch call')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✅ Approved → call</button>
-          <button onclick="setIntent(this,'pending decision — push for yes/no')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">⏳ Pending</button>
-          <button onclick="setIntent(this,'need driver license and voided check')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🪪 DL + VC</button>
+          <button onclick="setIntent(this,'qualify the lead — ask for email and how much they need')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📧 Get email</button>
+          <button onclick="setIntent(this,'app sent — push them to finish the application')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📤 Finish app</button>
+          <button onclick="setIntent(this,'need updated bank statements emailed over for fresh approval')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🏛 Bank stmts</button>
+          <button onclick="setIntent(this,'approval is in — pull them onto a call before revealing the number, frame as call to pull better terms')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✅ Approval → call</button>
+          <button onclick="setIntent(this,'pending decision — push for yes/no on the offer')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">⏳ Pending</button>
+          <button onclick="setIntent(this,'rejecting offer — rebuttal, keep deal alive, offer refi after 6 weeks')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">↩️ Rebuttal</button>
+          <button onclick="setIntent(this,'need driver license and voided check before sending contract')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🪪 DL + VC</button>
           <button onclick="setIntent(this,'sign the contract')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✍️ Sign contract</button>
-          <button onclick="setIntent(this,'bank verification — send the link')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🏦 Bank verify (link)</button>
-          <button onclick="setIntent(this,'funder will call them to wrap up bank verification and funding')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📞 Funder call</button>
-          <button onclick="setIntent(this,'pushing back on offer terms — pitch refinance after 6 weeks')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">♻️ Pushback / Refi</button>
-          <button onclick="setIntent(this,'ignoring me — re-engage')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">👀 No reply</button>
-          <button onclick="setIntent(this,'beat their current offer')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">⚖️ Beat current</button>
-          <button onclick="setIntent(this,'refinance — about 50% paid in')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🔄 Refi</button>
+          <button onclick="setIntent(this,'bank verification — lender will send a link or call them, check notes for which')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🏦 Bank verify</button>
+          <button onclick="setIntent(this,'funding call — coordinate funder call to wire')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📞 Funding call</button>
+          <button onclick="setIntent(this,'ghost chase — they keep not replying about the approval, vary the angle')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">👀 No reply</button>
+          <button onclick="setIntent(this,'post-funding renewal — about 50% paid in, refi for more capital')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🔄 Renewal</button>
         </div>
         <div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.42);margin:6px 0 4px">💳 0% Business Credit (Stacking)</div>
         <div id="ai-intent-chips-cc" style="display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none;-ms-overflow-style:none">
-          <button onclick="setIntent(this,'CC stacking — get their credit score')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📊 Credit score</button>
-          <button onclick="setIntent(this,'CC stacking — pull tri-merge from creditheroscore.com')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📋 Pull tri-merge</button>
-          <button onclick="setIntent(this,'CC stacking — text or email me the credit report')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📤 Send report</button>
-          <button onclick="setIntent(this,'CC stacking — share creditheroscore login email and password so I can pull it myself')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🔑 Share login</button>
-          <button onclick="setIntent(this,'CC stacking — Expand All before saving the report PDF')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📄 Expand All tip</button>
-          <button onclick="setIntent(this,'CC stacking — bring in a co-signer with stronger credit')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">👥 Co-signer</button>
-          <button onclick="setIntent(this,'CC stacking — credit lines approved, book the call')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✅ CC approved → call</button>
-          <button onclick="setIntent(this,'CC stacking — follow up, still waiting on the credit report')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">⏳ Where's the report</button>
+          <button onclick="setIntent(this,'CC stacking — get their credit score, ask about co-signer if low')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📊 Credit score</button>
+          <button onclick="setIntent(this,'CC stacking — download tri-merge PDF from creditheroscore.com and email it to me. Click Expand All before saving.')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📋 Email tri-merge</button>
+          <button onclick="setIntent(this,'CC stacking — chase the credit report, did they download and email it yet')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">⏳ Where's the report</button>
+          <button onclick="setIntent(this,'CC stacking — co-signer needed because credit is low')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">👥 Co-signer</button>
+          <button onclick="setIntent(this,'CC stacking — pre-approved, schedule a call with the specialist who will handle the deal')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✅ Pre-approved → specialist call</button>
         </div>
         <button onclick="generateAISMS()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(201,162,39,.15));border:1px solid rgba(124,58,237,.35);color:#a78bfa;font-size:14px;font-weight:800;touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:8px" id="ai-sms-btn">✨ Write message with AI</button>
         <div id="ai-sms-cards" style="display:none;margin-top:12px;flex-direction:column;gap:10px"></div>
@@ -1167,7 +1164,11 @@ function renderCard(){
   // Pre-compute all conditional HTML to avoid nested backtick issues on Safari/iOS
   const htmlPhone=ph?('<a class="lead-phone" href="tel:'+ph+'"><span class="lead-phone-dot"></span>'+fmtPhone(c.phone)+'</a>'):'<span class="lead-phone" style="color:rgba(255,255,255,.25)">No phone</span>';
   const htmlEmail=c.email?('<a class="lead-email" href="mailto:'+c.email+'"><span style="opacity:.5;font-size:10px">✉</span>'+c.email+'</a>'):'';
-  const htmlScore=c.credit?('<div style="background:rgba(201,162,39,.15);border:1.5px solid rgba(201,162,39,.35);border-radius:10px;padding:4px 10px;text-align:center;min-width:52px"><div style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:rgba(201,162,39,.6);line-height:1">★ Score</div><div style="font-size:18px;font-weight:900;color:var(--gold);line-height:1.2;letter-spacing:-.5px">'+c.credit+'</div></div>'):'';
+  // Score block — always visible. Full gold when present, muted gray when missing.
+  // Tap to edit inline.
+  const htmlScore=c.credit
+    ? ('<div onclick="inlineEditField('+idx+',\'credit\',\'Credit Score\',this)" style="background:rgba(201,162,39,.15);border:1.5px solid rgba(201,162,39,.35);border-radius:10px;padding:5px 10px;text-align:center;min-width:62px;cursor:pointer;touch-action:manipulation"><div style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:rgba(201,162,39,.6);line-height:1">★ Score</div><div style="font-size:20px;font-weight:900;color:var(--gold);line-height:1.2;letter-spacing:-.5px;margin-top:2px">'+c.credit+'</div></div>')
+    : ('<div onclick="inlineEditField('+idx+',\'credit\',\'Credit Score\',this)" style="background:rgba(255,255,255,.04);border:1.5px dashed rgba(255,255,255,.18);border-radius:10px;padding:5px 10px;text-align:center;min-width:62px;cursor:pointer;touch-action:manipulation;opacity:.7"><div style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.3);line-height:1">★ Score</div><div style="font-size:14px;font-weight:800;color:rgba(255,255,255,.35);line-height:1.2;letter-spacing:-.3px;margin-top:3px">— add</div></div>');
   const htmlWaitBanner=isOnWait?'<div style="background:rgba(240,68,68,.1);border-top:1px solid rgba(240,68,68,.2);padding:7px 16px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:900;color:#fca5a5;letter-spacing:.06em;text-transform:uppercase"><span style="font-size:14px">⛔</span> DO NOT CALL</div>':'';
   const remStored=localStorage.getItem(REM_KEY(c.row));
   const remData=remStored?JSON.parse(remStored):null;
@@ -1200,7 +1201,10 @@ function renderCard(){
     +htmlRemStrip
     +'<div class="card-header" style="'+headerBg+'">'
       +'<div class="card-header-top">'
-        +'<div class="avatar" style="background:'+avatarBg+'">'+ini(c.name)+'</div>'
+        +'<div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex-shrink:0">'
+          +'<div class="avatar" style="background:'+avatarBg+'">'+ini(c.name)+'</div>'
+          +htmlScore
+        +'</div>'
         +'<div class="name-block">'
           +'<div class="lead-name">'+(c.name||"—")+'</div>'
           +'<div class="lead-company">'+(c.company||" ")+'</div>'
@@ -1208,7 +1212,6 @@ function renderCard(){
         +'</div>'
         +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">'
           +'<button class="pencil-btn" onclick="openInfoEdit('+idx+')" title="Edit contact info">⚙</button>'
-          +htmlScore
         +'</div>'
       +'</div>'
       +htmlWaitBanner
@@ -2768,19 +2771,30 @@ function sendCustomSMS(){}
 
 function closeSMSPicker(){$("sms-ov").style.display="none";_smsIdx=null;}
 
-// Tap a chip → fill the intent input, briefly highlight the chip, and auto-generate
+// Tap a chip → fill the intent input and briefly highlight it.
+// Does NOT auto-generate — user reviews/edits the prompt then taps the AI button.
 function setIntent(btn, text){
   const input=$("ai-sms-intent");
-  if(input)input.value=text;
+  if(input){
+    input.value=text;
+    // Focus + place cursor at end so they can edit immediately
+    try{input.focus();input.setSelectionRange(text.length,text.length);}catch{}
+  }
   if(btn){
-    // visual confirmation
     const orig={bg:btn.style.background,border:btn.style.borderColor,color:btn.style.color};
     btn.style.background="rgba(124,58,237,.25)";
     btn.style.borderColor="rgba(124,58,237,.5)";
     btn.style.color="#c4b5fd";
     setTimeout(()=>{btn.style.background=orig.bg;btn.style.borderColor=orig.border;btn.style.color=orig.color;},600);
   }
-  generateAISMS();
+  // Pulse the AI button briefly so they know what to tap next
+  const aiBtn=$("ai-sms-btn");
+  if(aiBtn){
+    aiBtn.style.transition="all .15s";
+    aiBtn.style.transform="scale(1.02)";
+    aiBtn.style.boxShadow="0 0 24px rgba(124,58,237,.5)";
+    setTimeout(()=>{aiBtn.style.transform="";aiBtn.style.boxShadow="";},400);
+  }
 }
 
 function sendAISMS(idx){
@@ -2839,7 +2853,27 @@ async function generateAISMS(){
 "\n- When signing or self-referencing in a text, use 'Sam' only — never the last name 'Silva'."+
 "\n- Never invent or mention any other brokerage name. Never say 'Flip Finance' or any other shop."+
 "\n- Never mention any other broker name (no 'Sam Moretti' or made-up identities)."+
-"\nVOICE EXAMPLES (this is how Sam actually writes):"+
+"\n\n══ VOICE RULES — READ THESE TWICE ══"+
+"\n1. BE DIRECT. Tell the merchant exactly what to do and what they get. No teasing. No vague hooks."+
+"\n2. NO CHEESY LINES. The merchant is busy and skeptical. Cute phrases insult their intelligence."+
+"\n3. SPECIFICITY > CLEVERNESS. 'Download the PDF and email it to me' beats 'pull credit and we'll see magic.'"+
+"\n\n══ BANNED PHRASES — DO NOT USE — IF YOU CATCH YOURSELF WRITING THESE, REWRITE ══"+
+"\n- 'I'll show you the paydown' / 'show you the playdown' (merchant doesn't know what that means)"+
+"\n- 'That's our next move' (cheesy)"+
+"\n- 'Let me work my magic'"+
+"\n- 'I have a feeling' / 'gut tells me'"+
+"\n- 'Just checking in' (cliché — already banned)"+
+"\n- 'I hope this finds you well' (already banned)"+
+"\n- 'Reach out' as a verb in a follow-up ('I've been reaching out')"+
+"\n- 'Circle back' / 'circling back'"+
+"\n- 'Touch base'"+
+"\n- 'Quick question' as an opener (it's never quick)"+
+"\n- Any line that hints at value without naming it — say what they get, don't dangle it"+
+"\n\n══ HOW TO ASK FOR THE TRI-MERGE (precise wording matters) ══"+
+"\n- Don't say 'pull credit' — that's vague."+
+"\n- Say: 'download the credit report PDF from creditheroscore.com and send it to my email.'"+
+"\n- Email is the primary path. Texting the PDF or uploading via secure link both work — only mention these as alternatives if context suggests email isn't working."+
+"\n\n══ SAM'S REAL VOICE — examples (this is how he actually writes) ══"+
 "\n  — 'Hey I have an approval at 20k ready to go. Does that work for what you were looking to do?'"+
 "\n  — 'Just a heads up you're still approved for the funds we discussed. I've tried reaching out a few times and haven't heard back.'"+
 "\n  — 'What changes would make this deal work for you? Let me know and I'll get my team to see what we can adjust.'"+
@@ -2866,64 +2900,94 @@ async function generateAISMS(){
 "\n\n══ CONVERSATION HISTORY (notes) ══\n"+(c.notes||"No prior notes")+
 "\n\n══ ALL OFFERS ON THE TABLE ══\n"+allOffers+
 "\n\n══ HOW SAM WORKS THE MCA FLOW (your playbook) ══"+
-"\nThe MCA pipeline has clear stages. Match the message to where this lead actually is in the flow. Each text is meant to move the deal to the NEXT stage — not to close the whole deal in a single message."+
-"\n\nSTAGE 1 — QUALIFYING (Interested / new lead)"+
-"\nGoal: Get their email, ask how much they need, ask credit score."+
-"\nNext step we want from them: send us their email so we can fire off the application."+
-"\n\nSTAGE 2 — APPLICATION SENT (App Sent)"+
-"\nGoal: Get them to complete the JotForm app today."+
-"\nApp link if needed: https://form.jotform.com/253154501377151"+
-"\nNext step we want from them: finish the application so we can pull approvals."+
-"\n\nSTAGE 3 — APPROVED — TIME TO PITCH ON A CALL (Approved)"+
-"\nCRITICAL RULE: SAM DOES NOT SELL THE DEAL OVER TEXT. The pitch happens on the phone."+
-"\nThe move at this stage has TWO BEATS:"+
-"\n  Beat 1 (soft pitch): 'Hey I have an approval at $X ready to go. Does that work for what you were looking to do?' — gauge interest before dropping numbers."+
-"\n  Beat 2 (book the call): once they bite, frame it as 'let's hop on a call so I can give you better terms / understand your business better / probably approve you for more.'"+
-"\nWhy phone not text: a text close gives them an easy 'no' over text. A call lets us actually have the conversation, learn the business, and unlock better numbers from the funder."+
-"\nNext step we want from them: pick a time for a 5-10 minute call."+
-"\n\nSTAGE 4 — PENDING DECISION (post-pitch, they said 'let me think')"+
-"\nGoal: Push gently for the yes/no so we know whether to send contracts. Reinforce why now."+
-"\nNext step we want from them: a clear go-ahead so we can send contracts."+
-"\n\nSTAGE 4B — REJECTING / PUSHING BACK ON OFFER (when terms feel high)"+
-"\nWhen the merchant pushes back on payment size or terms, the move is NOT to drop the deal — it's to acknowledge + offer the refinance path."+
-"\nThe key tactic: 'If the daily payments seem high, we can always work on refinancing after 6 weeks of payments to make the terms longer and more manageable. Goal is to get funded today and adjust from there.'"+
-"\nAlso: 'Lock it in today, ride it for 6 weeks, then we refi for better terms. That's how most of my clients play it.'"+
-"\nAnother angle: 'What changes would make this deal work for you? Let me know and I'll get my team to see what we can adjust.'"+
-"\nGoal: keep the deal alive. Get them to lock in today with the refi promise."+
-"\n\nSTAGE 5 — CONTRACTS (signing)"+
-"\nBefore the contract goes out we need: driver's license + voided check (or motor check). Voided check alternatives: a bank letter, OR a screenshot from their bank's online portal — as long as the image clearly shows business name, account number, and routing number."+
-"\nOnce DL + bank info are in, the contract goes to their email."+
-"\nGoal: collect DL/VC if missing, OR push to sign if contract is already in their inbox."+
-"\nNext step we want from them: send the DL+VC pictures, or sign the contract."+
-"\n\nSTAGE 6 — BANK VERIFICATION (final step before funding)"+
-"\nAfter signing, we do a bank verification. TWO PATHS:"+
-"\n  Path A (link): we send the merchant a secure verification link they fill out themselves — takes a minute. This is the default."+
-"\n  Path B (funder call): the funder hops on a quick call with the merchant and walks them through the verification + final funding live. Use this when the merchant prefers human contact or has trouble with the link."+
-"\nIMPORTANT: Sam does NOT log in to the merchant's bank himself. The verification is either self-serve via link or live with the funder. Never frame it as 'I'll log in for you'."+
-"\nGoal: get the verification done — whichever path the merchant prefers."+
-"\nNext step we want from them: complete the link, or be ready for the funder's call."+
-"\n\nSTAGE 7 — FUNDED"+
-"\nGoal: short, warm confirmation. Pleasure working with you. Funded ✅."+
-"\n\nSTAGE 8 — REPEAT / REFINANCE"+
-"\nOnce 50%+ paid in (typically 1-2 months later), reach out to refinance them up for more working capital."+
-"\nGoal: re-engage warmly, ask how much they want now."+
+"\nThe MCA pipeline has clear stages. Match the message to exactly where the lead is. Each text moves them to the NEXT stage — not the whole deal."+
+"\n\nSTAGE 1 — INTERESTED (new lead)"+
+"\nWhat just happened: they showed interest in capital."+
+"\nWhat we need from them: their email + how much they need."+
+"\nMessage move: ask for the email and the amount. Direct."+
+"\n\nSTAGE 2 — EMAIL CAPTURED → SEND APPLICATION"+
+"\nWhat just happened: we got their email and sent the JotForm application to it."+
+"\nApp link: https://form.jotform.com/253154501377151"+
+"\nWhat we need from them: complete the application today."+
+"\nMessage move: confirm the app went out, push them to finish it now. If they got the email mention what's in it (short form + bank statement upload at the end)."+
+"\n\nSTAGE 3 — APP SENT, NOT FINISHED YET → CHASE THE APPLICATION"+
+"\nWhat just happened: they got the link and went quiet on filling it out."+
+"\nWhat we need from them: finish the form."+
+"\nMessage move: chase. Direct line on what's blocking, what they get when it's in."+
+"\n\nSTAGE 4 — UPDATED BANK STATEMENTS (refresh for fresh offer)"+
+"\nWhen this applies: they applied weeks/months ago, statements are stale, OR a new month started and underwriting wants the fresh look."+
+"\nWhat we need from them: bank statements from the last 1-3 months emailed over."+
+"\nMessage move: 'Need your last [N] months of bank statements emailed to me — underwriting wants a fresh look so I can pull better terms.' Frame the refresh as their upside, not our paperwork."+
+"\n\nSTAGE 5 — APPROVAL IS IN → GET THEM ON THE CALL"+
+"\nWhat just happened: underwriting came back with an approval."+
+"\nWhat we want: them on the phone. Selling the deal happens on the call, not in text."+
+"\nTWO ANGLES — pick based on context:"+
+"\n  ANGLE A (DEFAULT — pre-reveal, pull-for-call): don't drop the number yet. 'Got an approval back for "+(c.company||"the business")+" — before I lock it in with underwriting, hop on a quick call so we can talk through it. There's a real chance I can pull more favorable terms once I understand the business better.' This is the preferred move because once they see the number in text, they'll either accept silently or ghost — and we lose the chance to upgrade."+
+"\n  ANGLE B (TEXT-AVOIDER FALLBACK): if notes show they're a confirmed text-only person and won't pick up, drop the number directly: 'Approved at $X ready to go. Does that work for what you were looking to do? If you can hop on a quick call I can probably make it better.'"+
+"\nNext step we want: a call time, OR a yes/no on the soft offer."+
+"\n\nSTAGE 6 — PENDING DECISION (post-pitch, they said 'let me think')"+
+"\nWhat just happened: we pitched, they didn't say yes."+
+"\nWhat we need: a yes/no so we can send contracts or release the approval."+
+"\nMessage move: direct. 'Where are we on the $X — yes or no? I need to know whether to start contracts.' Never give them an easy out."+
+"\n\nSTAGE 7 — REJECTING OFFER (rebuttals)"+
+"\nWhen this applies: they said the offer is too small, payment is too high, terms aren't good enough."+
+"\nThe goal: keep the deal alive with rebuttals. Don't drop it. Don't get defensive."+
+"\nKEY REBUTTALS Sam uses:"+
+"\n  — 'What changes would make this work for you? Tell me what's realistic and I'll bring it to underwriting.'"+
+"\n  — On payment size: 'If the daily seems high, we can refinance after 6 weeks of payments to extend the terms. Lock it in today, ride 6 weeks, then we re-up at better terms. That's how most of my clients play it.'"+
+"\n  — 'The only way we can't approve you for another loan later is if the current one isn't paid back. Let's make this current offer work and stack from there.'"+
+"\n  — 'This is what underwriting put on the table this round. Tell me what's missing and I'll go back to them.'"+
+"\nNext step: them telling you what's realistic, OR locking in today with the refi promise."+
+"\n\nSTAGE 8 — AGREED → SEND CONTRACT (collect DL + voided check first)"+
+"\nWhat just happened: they agreed to move forward."+
+"\nBefore the contract goes out: driver's license + voided check (or alternative: bank letter / screenshot showing business name + account # + routing #)."+
+"\nWhat we need: photos of DL and voided check (or alternative)."+
+"\nMessage move: 'Send me a picture of your driver's license and a voided check so I can send the contract.'"+
+"\n\nSTAGE 9 — CONTRACT IN INBOX → PUSH TO SIGN"+
+"\nWhat just happened: contract is in their email."+
+"\nWhat we need: signature."+
+"\nMessage move: confirm sent + reduce friction. ('Signing locks in the rate but doesn't lock you into the deal — you can still change your mind until we wire.')"+
+"\n\nSTAGE 10 — BANK VERIFICATION (lender handles, not Sam)"+
+"\nWhat just happened: contract signed. Time for verification."+
+"\nTWO PATHS — never both. Whichever the lender provides:"+
+"\n  PATH A: lender sends a verification LINK. Sam forwards it. Merchant completes themselves."+
+"\n  PATH B: lender does a phone CALL with the merchant. Could be: merchant calls a number, OR merchant takes the lender's incoming call, OR they coordinate a time."+
+"\nIMPORTANT: Sam never does the verification himself. The lender handles it. The notes/status note will say which path applies for THIS deal — read them carefully."+
+"\nMessage move: tell them what's coming (link incoming OR call incoming/outgoing) and what's needed from them."+
+"\n\nSTAGE 11 — FUNDING CALL (final step)"+
+"\nWhat just happened: verification done, funder is ready to wire."+
+"\nWhat we need: a quick funding call between merchant and funder."+
+"\nMessage move: same pattern as bank verification — they call a number, or wait for a call, or pick a time. Always check the notes for which one."+
+"\n\nSTAGE 12 — FUNDED"+
+"\nMessage move: short, warm confirmation. Funded ✅. Pleasure working with you. Tell me when the wire hits."+
+"\n\nSTAGE 13 — POST-FUNDING REFI / RENEWAL (50%+ paid in)"+
+"\nWhen this applies: they're 1-2+ months in, paid down enough to renew."+
+"\nMessage move: re-engage warmly, ask how much they need now. Frame as: 'You've been solid on payments — got the green light to offer you a renewal at better terms and a higher limit. How much are you looking for?'"+
+"\n\nSTAGE 14 — GHOST / NO REPLY (chase the silence)"+
+"\nWhen this applies: we've reached out about an approval/file and they've gone dark."+
+"\nMessage move: short, slightly different angle each time. Don't pile up identical follow-ups."+
+"\nKey lines Sam uses:"+
+"\n  — 'You went quiet on me — did something change with the [$X] or did the timing just shift?'"+
+"\n  — 'Just a heads up you're still approved. If you want to move forward let me know. Otherwise I'll close this out and reallocate.'"+
+"\n  — 'Are we still doing this or did you go a different direction? Either way is fine — just need to know.'"+
+"\nDo NOT: send 5 'just checking in' messages. Vary the angle, give them an out (closing the file), or pivot to a different stage of the deal."+
 "\n\n══ HOW SAM WORKS THE 0% BUSINESS CREDIT (STACKING) FLOW ══"+
-"\nThis is a different product than MCA. If the lead is on stacking (status mentions credit lines, tri-merge, 0% APR, stacking, etc., OR the intent says 'CC stacking'), use this flow instead."+
+"\nThis is a different product than MCA. If the lead is on stacking (status mentions credit lines, tri-merge, 0% APR, stacking, etc., OR the intent says 'CC stacking'), use this flow."+
 "\n\nSTACK STAGE 1 — QUALIFY ON CREDIT SCORE"+
-"\nGoal: get their current credit score. 680+ unlocks the strongest 0% APR business credit lines."+
-"\nIf below 680: don't kill the deal — ask if they have a co-signer with stronger credit. A solid co-signer can save the file."+
-"\n\nSTACK STAGE 2 — PULL TRI-MERGE"+
-"\nGoal: get them to pull a tri-merge credit report from creditheroscore.com so we can see exactly which lines we can hit."+
-"\nKey detail: when they download the PDF they MUST click 'Expand All' first, otherwise we only see a summary view."+
-"\n\nSTACK STAGE 3 — GET THE REPORT TO SAM (3 ways, any of them works)"+
-"\n  (a) Text the PDF directly to Sam"+
-"\n  (b) Email the PDF to Sam"+
-"\n  (c) Share their creditheroscore.com email + password so Sam can log in and pull it himself (fastest — no waiting on the merchant)"+
-"\nFrame option (c) as the easy/fast path. The login is just for the report — nothing else."+
-"\n\nSTACK STAGE 4 — REVIEW + SUBMIT"+
-"\nSam reviews the report, picks the targets, submits to underwriters."+
-"\n\nSTACK STAGE 5 — APPROVED — BOOK THE PITCH CALL"+
-"\nSame rule as MCA: do not sell the deal in text. Get them on the phone so Sam can walk them through it and unlock better limits."+
+"\nWhat we need: their current credit score. 680+ is the target."+
+"\nBelow 680: don't kill it. Ask if they have a co-signer with stronger credit."+
+"\n\nSTACK STAGE 2 — GET THE TRI-MERGE REPORT (the main move of this whole flow)"+
+"\nWhat we need: tri-merge report PDF from creditheroscore.com, EMAILED to Sam."+
+"\nExact wording (or close to it): 'Go to creditheroscore.com, download your credit report PDF, and email it to me.'"+
+"\nKey detail: tell them to click 'Expand All' before saving the PDF — otherwise we only see a summary."+
+"\nEmail is the primary path. If email is somehow blocked, alternatives are: text the PDF, or upload via a secure link in the application. Don't open with the alternatives — open with email."+
+"\nNever ask them to share their creditheroscore login/password. Sam doesn't log in for them."+
+"\n\nSTACK STAGE 3 — REPORT IN HAND → SCHEDULE THE SPECIALIST CALL"+
+"\nWhat just happened: Sam got the report. He passes it to his stacking partners, who handle the deal from there."+
+"\nMessage move: 'You're pre-approved for $X. When's a good time to speak? My specialist wants to get on the phone with you and walk you through everything.'"+
+"\nSam's job here is just to hand off the call time. Partners take it from point A to wire."+
+"\n\nSTACK STAGE 4 — GHOST CHASE (if no report, no reply)"+
+"\nSame rules as MCA Stage 14 — vary the angle, give them an out, don't pile up identical 'still need that report' messages."+
 "\n\n══ GOLDEN RULES SAM LIVES BY ══"+
 "\n- A text moves the deal to the NEXT stage. It does not try to close the entire deal."+
 "\n- Selling happens on the phone, not in text. If we're at approved/pitch stage, the message must aim at booking a call — never give a hard close in text."+
