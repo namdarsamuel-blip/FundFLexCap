@@ -654,6 +654,174 @@ function closeInfoEdit(){$("info-edit-ov").classList.remove("open");_ieIdx=null;
 
 function closeStatusPicker(){$("status-ov").classList.remove("open");_spIdx=null;}
 
+// ── TAG PICKER ──────────────────────────────────────────────────────────────
+let _tpIdx=null;            // index of lead being edited
+let ALL_TAGS=[];            // every known tag from col F validation + actually-used cells
+let _tpSelected=new Set();  // tags currently on this lead (working set, not committed yet)
+
+function openTagPicker(idx){
+  _tpIdx=idx;
+  const c=contacts[idx];
+  if(!c)return;
+  // Seed working set from current tags (excluding "Wait" — it's system-managed)
+  _tpSelected=new Set(
+    (c.tags||"").split(",").map(t=>t.trim()).filter(t=>t&&t.toLowerCase()!=="wait")
+  );
+  // Also seed ALL_TAGS from currently-loaded contacts so picker isn't empty before fetch
+  if(!ALL_TAGS.length){
+    const seen={};
+    contacts.forEach(function(ct){
+      (ct.tags||"").split(",").forEach(function(part){
+        const v=part.trim();
+        if(v&&v.toLowerCase()!=="wait"&&!seen[v]){seen[v]=true;ALL_TAGS.push(v);}
+      });
+    });
+  }
+  buildTagPickerUI();
+  // Background fetch fresh list from col F validation
+  const s=currentSheet();
+  const baseUrl=s.url||SHEET_URL;
+  fetch(baseUrl+"?action=tags&sheet="+encodeURIComponent(s.tab)+"&t="+Date.now())
+    .then(r=>r.text())
+    .then(function(text){
+      try{
+        const data=JSON.parse(text);
+        if(data.tags&&Array.isArray(data.tags)){
+          // Merge — keep order, add anything new
+          const seen={};
+          ALL_TAGS.forEach(function(t){seen[t.toLowerCase()]=true;});
+          data.tags.forEach(function(t){
+            const v=String(t||"").trim();
+            if(v&&v.toLowerCase()!=="wait"&&!seen[v.toLowerCase()]){
+              seen[v.toLowerCase()]=true;
+              ALL_TAGS.push(v);
+            }
+          });
+          // Re-render if picker still open on same lead
+          const ov=document.getElementById("tag-picker-ov");
+          if(ov&&_tpIdx===idx)buildTagPickerUI();
+        }
+      }catch{}
+    })
+    .catch(function(){});
+}
+
+function buildTagPickerUI(){
+  let ov=document.getElementById("tag-picker-ov");
+  if(!ov){
+    ov=document.createElement("div");
+    ov.id="tag-picker-ov";
+    ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:900;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(20px);overflow-y:auto";
+    ov.onclick=function(e){if(e.target===ov)closeTagPicker();};
+    document.body.appendChild(ov);
+  }
+  const c=contacts[_tpIdx];
+  const name=(c&&c.name)||"this lead";
+  // Sort: selected tags first, then alphabetical
+  const sortedTags=ALL_TAGS.slice().sort(function(a,b){
+    const aSel=_tpSelected.has(a),bSel=_tpSelected.has(b);
+    if(aSel!==bSel)return aSel?-1:1;
+    return a.toLowerCase().localeCompare(b.toLowerCase());
+  });
+  ov.innerHTML='<div style="width:100%;max-width:520px;background:linear-gradient(180deg,#1a1040,#130e2e);border-radius:24px 24px 0 0;border-top:2px solid rgba(124,58,237,.5);padding:0 0 50px;max-height:92vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.16,1,.3,1) both">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;border-bottom:1px solid rgba(45,37,80,.5)">'+
+      '<div><div style="font-size:18px;font-weight:900;color:#fff">🏷 Tags</div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px">For '+name+'</div></div>'+
+      '<button onclick="closeTagPicker()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:15px;display:flex;align-items:center;justify-content:center">✕</button>'+
+    '</div>'+
+    '<div style="padding:18px 16px 0">'+
+      '<div style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:10px">Tap to toggle</div>'+
+      '<div id="tag-pick-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">'+
+        (sortedTags.length===0?'<div style="font-size:13px;color:rgba(255,255,255,.4);font-style:italic">No tags yet — create the first one below</div>':
+          sortedTags.map(function(t){
+            const sel=_tpSelected.has(t);
+            return '<button onclick="toggleTag(this,\''+t.replace(/'/g,"\\'")+'\')" data-tag="'+t.replace(/"/g,'&quot;')+'" style="padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;background:'+(sel?"rgba(124,58,237,.25)":"rgba(255,255,255,.05)")+';border:1.5px solid '+(sel?"rgba(124,58,237,.55)":"rgba(255,255,255,.12)")+';color:'+(sel?"#c4b5fd":"rgba(255,255,255,.75)")+';touch-action:manipulation">'+(sel?"✓ ":"")+t+'</button>';
+          }).join("")
+        )+
+      '</div>'+
+      '<div style="border-top:1px solid rgba(45,37,80,.5);padding-top:16px">'+
+        '<div style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:10px">+ Create New Tag</div>'+
+        '<div style="display:flex;gap:8px">'+
+          '<input id="tag-new-input" type="text" placeholder="e.g. Follow-up, Renewal, Hot…" autocomplete="off" autocapitalize="words" style="flex:1;padding:12px 14px;background:rgba(255,255,255,.07);border:1.5px solid rgba(124,58,237,.35);border-radius:12px;color:#fff;font-size:14px;font-weight:600;outline:none;font-family:inherit" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addNewTag();}"/>'+
+          '<button onclick="addNewTag()" style="padding:12px 18px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.3),rgba(201,162,39,.18));border:1.5px solid rgba(124,58,237,.5);color:#c4b5fd;font-size:14px;font-weight:800;touch-action:manipulation;white-space:nowrap">Add</button>'+
+        '</div>'+
+        '<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:8px">Press Enter or tap Add — new tags are added to the dropdown for all leads</div>'+
+      '</div>'+
+      '<div style="margin-top:24px;display:flex;gap:8px">'+
+        '<button onclick="closeTagPicker()" style="flex:1;padding:13px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:14px;font-weight:700;touch-action:manipulation">Cancel</button>'+
+        '<button onclick="saveTagsForLead()" style="flex:2;padding:13px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#c9a227);border:none;color:#fff;font-size:14px;font-weight:800;touch-action:manipulation">Save</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+
+function toggleTag(btn,tag){
+  if(_tpSelected.has(tag))_tpSelected.delete(tag);
+  else _tpSelected.add(tag);
+  // Cheap re-style without re-render
+  const sel=_tpSelected.has(tag);
+  btn.style.background=sel?"rgba(124,58,237,.25)":"rgba(255,255,255,.05)";
+  btn.style.borderColor=sel?"rgba(124,58,237,.55)":"rgba(255,255,255,.12)";
+  btn.style.color=sel?"#c4b5fd":"rgba(255,255,255,.75)";
+  btn.textContent=(sel?"✓ ":"")+tag;
+}
+
+function addNewTag(){
+  const inp=document.getElementById("tag-new-input");
+  if(!inp)return;
+  const raw=(inp.value||"").trim();
+  if(!raw){inp.focus();return;}
+  // Dedupe case-insensitively
+  const existing=ALL_TAGS.find(function(t){return t.toLowerCase()===raw.toLowerCase();});
+  const finalTag=existing||raw;
+  if(!existing)ALL_TAGS.unshift(finalTag);
+  _tpSelected.add(finalTag);
+  inp.value="";
+  // Push to col F validation in background — non-blocking
+  if(!existing){
+    const s=currentSheet();
+    fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({action:"addTagToValidation",sheet:s.tab,tag:finalTag})
+    }).catch(function(){});
+  }
+  // Re-render the picker to show the new tag
+  buildTagPickerUI();
+  // Refocus the input so user can keep adding
+  setTimeout(function(){const i=document.getElementById("tag-new-input");if(i)i.focus();},50);
+}
+
+function saveTagsForLead(){
+  if(_tpIdx===null)return;
+  const c=contacts[_tpIdx];
+  if(!c){closeTagPicker();return;}
+  // Preserve "Wait" if it was there (system-managed)
+  const oldList=(c.tags||"").split(",").map(t=>t.trim()).filter(Boolean);
+  const hadWait=oldList.some(t=>t.toLowerCase()==="wait");
+  const newList=Array.from(_tpSelected);
+  if(hadWait&&!newList.some(t=>t.toLowerCase()==="wait"))newList.unshift("Wait");
+  const newTagsStr=newList.join(", ");
+  const oldTagsStr=c.tags||"";
+  if(newTagsStr===oldTagsStr){closeTagPicker();return;}
+  // Optimistic update + sync
+  logChange("tags",c,'Tags: "'+(oldTagsStr||"none")+'" → "'+(newTagsStr||"none")+'"');
+  undoSnapshot={idx:_tpIdx,tags:c.tags};
+  c.tags=newTagsStr;
+  saveC();
+  const s=currentSheet();
+  fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+    body:JSON.stringify({action:"updateCell",sheet:s.tab,row:c.row,field:"tags",value:newTagsStr})
+  }).catch(function(){});
+  showUndo("Tags updated");
+  renderCard();
+  closeTagPicker();
+}
+
+function closeTagPicker(){
+  const ov=document.getElementById("tag-picker-ov");
+  if(ov)ov.remove();
+  _tpIdx=null;
+  _tpSelected=new Set();
+}
+
 function confirmDelete(){
   if(_spIdx===null)return;const c=contacts[_spIdx];
   _deleteTarget={idx:_spIdx,contact:{...c}};
@@ -1193,21 +1361,46 @@ function renderCard(){
     ? "Reminder · Wait ended "+remAgoText
     : (remDue?"Reminder · Due now":"Reminder");
   // Reminder = rounded amber pill, inset like a sticky note attached to the card
+  // Build headline + subline based on what kind of reminder this is.
+  // For wait-expired: BIG bold "Wait ended Xm ago" up top, original note below.
+  // For regular due: BIG bold "Due now" up top, label below.
+  // For scheduled: small "Reminder" kicker, label below with relative time.
+  const remHeadline=remFromWait
+    ? "Wait ended "+remAgoText.toUpperCase()
+    : (remDue?"Due now":null); // null = use small-kicker mode
+  const remSubline=(function(){
+    if(remFromWait){
+      // Strip the "Wait expired:" prefix for the subline since headline already says it
+      return remLabel.replace(/^wait expired:\s*/i,"").replace(/^wait expired\s*[—-]\s*/i,"")||"ready to call";
+    }
+    if(remDue)return remLabel;
+    return remLabel; // scheduled — label is main info
+  })();
+  // Reminder = rounded amber pill, inset like a sticky note attached to the card
   // Distinctly different from the status color bar (sits below it, not on top)
   const htmlRemStrip=isOnReminder?(
-    '<div onclick="openReminderPicker('+c.row+')" style="margin:0 0 8px;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,rgba(245,158,11,'+(remDue?'.28':'.16')+') 0%,rgba(245,158,11,'+(remDue?'.12':'.05')+') 100%);border:1.5px solid rgba(245,158,11,'+(remDue?'.55':'.4')+');display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;box-shadow:'+(remDue?'0 0 24px rgba(245,158,11,.3), inset 0 0 0 1px rgba(245,158,11,.18)':'0 2px 8px rgba(245,158,11,.08)')+'">'+
-      '<div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;overflow:hidden">'+
-        '<span style="font-size:16px;'+(remDue?'animation:pulse 1.4s ease-in-out infinite':'')+'">🔔</span>'+
-        '<div style="display:flex;flex-direction:column;min-width:0;flex:1">'+
-          '<span style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(251,191,36,.7);line-height:1">'+remKicker+'</span>'+
-          '<span style="font-size:13px;font-weight:800;color:'+(remDue?'#fcd34d':'#fbbf24')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">'+remLabel+(remDue||remFromWait?'':' <span style="font-weight:700;color:rgba(251,191,36,.55)">· '+remTime+'</span>')+'</span>'+
+    '<div onclick="openReminderPicker('+c.row+')" style="margin:0 0 8px;padding:11px 13px;border-radius:14px;background:linear-gradient(135deg,rgba(245,158,11,'+(remDue?'.30':'.16')+') 0%,rgba(245,158,11,'+(remDue?'.13':'.05')+') 100%);border:1.5px solid rgba(245,158,11,'+(remDue?'.6':'.4')+');display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;box-shadow:'+(remDue?'0 0 24px rgba(245,158,11,.32), inset 0 0 0 1px rgba(245,158,11,.2)':'0 2px 8px rgba(245,158,11,.08)')+'">'+
+      '<div style="display:flex;align-items:center;gap:11px;min-width:0;flex:1;overflow:hidden">'+
+        '<span style="font-size:18px;flex-shrink:0;'+(remDue?'animation:pulse 1.4s ease-in-out infinite':'')+'">🔔</span>'+
+        '<div style="display:flex;flex-direction:column;min-width:0;flex:1;gap:2px">'+
+          // HEADLINE: big and bold for wait-expired or due-now; small caps kicker for scheduled
+          (remHeadline
+            ? '<span style="font-size:14px;font-weight:900;color:#fcd34d;letter-spacing:.01em;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+remHeadline+'</span>'
+            : '<span style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(251,191,36,.7);line-height:1">Reminder'+(remTime?' · in '+remTime:'')+'</span>'
+          )+
+          // SUBLINE: the actual note / context
+          '<span style="font-size:12px;font-weight:700;color:rgba(251,191,36,'+(remHeadline?'.78':'.95')+');white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3">'+remSubline+'</span>'+
         '</div>'+
       '</div>'+
       '<button onclick="event.stopPropagation();clearReminder('+c.row+')" style="padding:6px 12px;border-radius:8px;background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.4);color:#fcd34d;font-size:11px;font-weight:800;flex-shrink:0;touch-action:manipulation;line-height:1">✕ Dismiss</button>'+
     '</div>'
   ):'';
-  // Tags rendered inline next to status (compact, smaller) AND in meta row (legacy fallback if needed)
-  const htmlTagsCompact=nonWaitTags.map(function(t){return'<span style="display:inline-flex;align-items:center;font-size:10px;font-weight:800;letter-spacing:.03em;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.85);white-space:nowrap'+(isOnWait?';opacity:.4':'')+'">'+t+'</span>';}).join('');
+  // Tags rendered inline next to status — tappable to open tag picker
+  // event.stopPropagation() prevents the parent (status picker) from opening when tapping a tag
+  const htmlTagsCompact=nonWaitTags.map(function(t){
+    return'<span onclick="event.stopPropagation();openTagPicker('+idx+')" style="display:inline-flex;align-items:center;font-size:10px;font-weight:800;letter-spacing:.03em;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.85);white-space:nowrap;cursor:pointer'+(isOnWait?';opacity:.4':'')+'">'+t+'</span>';
+  }).join('');
+  const htmlAddTagBtn='<button onclick="event.stopPropagation();openTagPicker('+idx+')" style="display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.25);color:rgba(255,255,255,.6);cursor:pointer;touch-action:manipulation;line-height:1;padding:0" title="Add tag">+</button>';
   const htmlSetRem=isOnReminder?'':'<button onclick="openReminderPicker('+c.row+')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(245,158,11,.08);border:1.5px solid rgba(245,158,11,.35);color:#fbbf24;white-space:nowrap;touch-action:manipulation">🔔 Reminder</button>';
   const htmlSmsBtn=ph?('<button class="btn-sms" onclick="openSMSPicker('+idx+')">💬 Text</button>'):'<button class="btn-sms off" style="cursor:not-allowed">💬 Text</button>';
   const htmlOffersBlock=(function(){if(!c.approvals)return'';const lines=c.approvals.split("\n").map(function(line){const l=line.trim();if(!l||l.startsWith("http"))return"";return'<button onclick="copySingleOffer('+idx+',this.dataset.offer)" data-offer="'+l.replace(/"/g,"&quot;")+'" style="width:100%;text-align:left;padding:8px 10px;margin-bottom:5px;background:rgba(255,255,255,.04);border:1px solid rgba(45,37,80,.6);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;touch-action:manipulation;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>'+l+'</span><span style="color:var(--sub);font-size:11px;flex-shrink:0">copy</span></button>';}).join("");return'<div style="border-top:1px solid rgba(45,37,80,.6);padding:10px 12px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">📋 All Offers</div><button onclick="copyAllOffers('+idx+')" style="padding:5px 12px;border-radius:16px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.35);color:var(--gold);font-size:11px;font-weight:800;touch-action:manipulation">Copy all</button></div>'+lines+'</div>';}());
@@ -1222,7 +1415,7 @@ function renderCard(){
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
         +htmlTagsCompact
-        +(htmlTagsCompact?'':'<span style="font-size:10px;color:rgba(255,255,255,.35)">tap to change</span>')
+        +htmlAddTagBtn
       +'</div>'
     +'</div>'
     +'<div class="card-header" style="'+headerBg+'">'
