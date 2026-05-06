@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="FundFlexCap"/>
@@ -74,15 +74,15 @@
 <style>
 :root{--bg:#0d0a1a;--card:#13102a;--border:#2d2550;--text:#ede8ff;--sub:#7a6fa8;--ghost:#1e1838;--green:#00c27a;--red:#f04444;--blue:#3b8bff;--purple:#7c3aed;--gold:#c9a227;--amber:#f59e0b}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+html{height:100%}
+body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;overscroll-behavior-y:none}
 button,input,textarea{font-family:inherit;border:none;outline:none;cursor:pointer;background:none;color:inherit}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-.topbar{background:rgba(13,10,26,.92);border-bottom:1px solid var(--border);padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between;position:fixed;top:0;left:0;right:0;z-index:90;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.topbar.hidden{transform:translateY(-100%)}
+.topbar{background:rgba(13,10,26,.92);border-bottom:1px solid var(--border);padding:calc(14px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;justify-content:space-between;position:fixed;top:0;left:0;right:0;z-index:90;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 .wordmark{font-size:20px;font-weight:900;letter-spacing:-.5px;color:#fff}
 .wordmark em{color:var(--gold);font-style:normal}
 .topbar-r{display:flex;gap:7px}
@@ -476,12 +476,6 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
       </div>
     </div>
   </div>
-</div>
-<!-- FLOATING MINI NAV — appears when nav bar scrolls out of view -->
-<div id="float-nav" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:30;flex-direction:row;align-items:center;gap:10px;background:rgba(13,10,26,.92);border:1px solid rgba(45,37,80,.8);border-radius:30px;padding:6px 14px;backdrop-filter:blur(16px);box-shadow:0 4px 24px rgba(0,0,0,.5)">
-  <button onclick="go(-1)" ontouchend="event.preventDefault();go(-1)" style="width:32px;height:32px;border-radius:50%;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:#a78bfa;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation">‹</button>
-  <span id="float-nav-count" style="font-size:12px;font-weight:800;color:var(--gold);min-width:60px;text-align:center">— / —</span>
-  <button onclick="go(1)" ontouchend="event.preventDefault();go(1)" style="width:32px;height:32px;border-radius:50%;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:#a78bfa;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation">›</button>
 </div>
 <div id="undo-bar"><span id="undo-msg">Change saved</span><button onclick="doUndo()">Undo</button></div>
 <div id="toast"></div>
@@ -1452,21 +1446,7 @@ function showUndo(msg){const b=$("undo-bar");$("undo-msg").textContent=msg;b.cla
 
 function startAutoRefresh(){if(_autoRefTimer)clearInterval(_autoRefTimer);_autoRefTimer=setInterval(()=>syncNow(false,true),90000);}
 
-// Show floating nav when nav-bar scrolls out of view
-(function(){
-  const nav=document.getElementById("float-nav");
-  const navBar=document.getElementById("nav-bar-el");
-  function checkScroll(){
-    if(!nav)return;
-    const nb=navBar||document.querySelector(".nav-bar");
-    if(!nb){nav.style.display="none";return;}
-    const rect=nb.getBoundingClientRect();
-    const hidden=rect.bottom<0||rect.top>window.innerHeight;
-    nav.style.display=hidden?"flex":"none";
-  }
-  window.addEventListener("scroll",checkScroll,{passive:true});
-  window.addEventListener("resize",checkScroll,{passive:true});
-})();
+// (Floating bottom nav removed — main nav bar is always visible at top)
 
 function startHoldSync(e){_holdTimer=setTimeout(()=>{_holdTimer=null;syncGoFirst();toast("↩ Going to first lead…");},600);}
 
