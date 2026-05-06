@@ -456,8 +456,9 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
           <button onclick="setIntent(this,'pending decision — push for yes/no')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">⏳ Pending</button>
           <button onclick="setIntent(this,'need driver license and voided check')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🪪 DL + VC</button>
           <button onclick="setIntent(this,'sign the contract')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">✍️ Sign contract</button>
-          <button onclick="setIntent(this,'bank verification one-time login OTL')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🔐 OTL</button>
-          <button onclick="setIntent(this,'lock in the funder call')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📞 Funder call</button>
+          <button onclick="setIntent(this,'bank verification — send the link')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🏦 Bank verify (link)</button>
+          <button onclick="setIntent(this,'funder will call them to wrap up bank verification and funding')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📞 Funder call</button>
+          <button onclick="setIntent(this,'pushing back on offer terms — pitch refinance after 6 weeks')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">♻️ Pushback / Refi</button>
           <button onclick="setIntent(this,'ignoring me — re-engage')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">👀 No reply</button>
           <button onclick="setIntent(this,'beat their current offer')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">⚖️ Beat current</button>
           <button onclick="setIntent(this,'refinance — about 50% paid in')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">🔄 Refi</button>
@@ -2636,10 +2637,13 @@ function openSMSPicker(ri){
         {l:"Been a while",b:"Hey it's been a while. You mentioned you were looking for capital. What's the best email to send the application to right now?"},
       ]},
       approved:{label:"Approval",icon:"✅",templates:[
+        {l:"Soft pitch (have approval)",b:"Hey "+first+" I have an approval at "+amt+" ready to go. Does that work for what you were looking to do?"},
         {l:"Approval + call",b:"Great news. I got "+biz+" approved for "+amt+". Let's hop on a quick call so I can explain the early payment discounts — it'll save you a lot on the payback. You free now?"},
-        {l:"Approval ready",b:first+" approval came back. I have the details ready. When can you jump on a call so I can walk you through everything?"},
+        {l:"Approval ready — get on call",b:"Good morning "+first+"! I've been working on getting these funds approved for you. Let's hop on a call today to go over everything."},
         {l:"Better terms on call",b:"Got the approval back "+first+". Want to get on a quick call so I can understand the business better — there's a real chance I can pull better terms or more capital than what's on paper. 5 mins, when works?"},
-        {l:"Great terms available",b:"Great news! I could have you approved and wired today with our best programs. The terms depend on your revenue, credit, industry and positions. My underwriter needs to look at the financials to lock in the terms but we're highly competitive and could fund same day."},
+        {l:"Hold the line — pre-contract",b:"I can hold the "+amt+" approval but I need to know if we're moving. Otherwise I'll release it back to underwriting."},
+        {l:"Full offer breakdown",b:"Alright, based on everything we talked about, here's what fits your cash flow and gets you moving today:\n\nFunding Amount: "+amt+"\nTerm Length: [X] days\nDaily Payments: $[X]\nPayback Amount: $[X]\n\nTake a look and tell me if you want me to lock it in. Once you give me the green light, I'll get everything lined up for funding."},
+        {l:"Approval still open",b:"Just a heads up "+first+" — you're still approved for the funds we discussed. I've tried reaching out a few times and haven't heard back. If you want to move forward let me know. Otherwise I'll close this out and reallocate the approval."},
       ]},
       pending:{label:"Pending Decision",icon:"⏳",templates:[
         {l:"Where are we at",b:first+" where are we at on the "+amt+" we discussed? Just need a yes/no so I know whether to start contracts."},
@@ -2647,8 +2651,19 @@ function openSMSPicker(ri){
         {l:"Help me think it through",b:first+" if there's anything on the fence, let me know what's on your mind. I'd rather talk it through than have you sit on it."},
         {l:"Move or not",b:"Let me know if we're moving on this or not "+first+". Either way is fine — just need to know so I can manage the file."},
       ]},
+      reject_offer:{label:"Pushback / Refi Path",icon:"♻️",templates:[
+        {l:"What changes work?",b:"What changes would make this deal work for you "+first+"? Let me know and I'll get my team to see what we can adjust."},
+        {l:"Refi after 6 weeks",b:"If the daily payments seem high, we can always work on refinancing after 6 weeks of payments to make the terms longer and more manageable. Goal is to get funded today and adjust from there."},
+        {l:"Tell me realistic",b:"Tell me something realistic we can adjust and I'll have my team look at it right away."},
+        {l:"This is what underwriting put up",b:"This is what underwriting was willing to put on the table this round. Take a look and let me know if you want me to lock it in — and I'll get the funding lined up."},
+        {l:"Lock it, then refi",b:"Lock it in today "+first+", ride it for 6 weeks, then we refi for better terms. That's how most of my clients play it."},
+        {l:"Can't approve unless paid back",b:"The only way we can't approve you for another loan later is if the current one isn't paid back. Let's discuss how we can make this current offer work for you."},
+      ]},
       dlvc:{label:"DL & Voided Check",icon:"🪪",templates:[
         {l:"Need DL + VC",b:first+" before I can send the contract over I need a picture of your driver's license and a voided check (or motor check). Send those over and I'll fire the contract right after."},
+        {l:"DL + VC — Sam's voice",b:"Send me pictures of your driver's license and a voided check so I can send you the contract."},
+        {l:"Bank letter alternative",b:"As an alternative to a voided check, you can provide a screenshot of your bank account showing the routing number, account number, and your business name. Or a bank letter that includes the same details — works either way."},
+        {l:"Bank screenshot specs",b:"A bank letter or a screenshot from your bank's online portal will work, as long as the image clearly shows: business name, account number, and routing number. All three need to be visible in the same image."},
         {l:"Just the DL",b:"Just need a clear picture of your driver's license to move on the contract."},
         {l:"Just the VC",b:"Need a voided check (or motor check) on file before I can release the contract. Quick photo works."},
         {l:"Reminder DL/VC",b:first+" still waiting on the driver's license and voided check — once those are in, contract goes out same minute."},
@@ -2660,17 +2675,13 @@ function openSMSPicker(ri){
         {l:"Early payoff discount",b:"We also offer really nice early payment discounts. So whenever you're ready to pay this off we'll be applying discounts and you won't be paying the full amount back."},
         {l:"Cold contract follow up",b:first+" I haven't seen those contracts come back yet. I can only hold this "+amt+" offer for so long before the funds are reallocated to the next file. Are we getting this funded today?"},
       ]},
-      otl:{label:"Bank Verification (OTL)",icon:"🔐",templates:[
-        {l:"OTL incoming",b:"Now that the contract is signed we just need a quick bank verification — a one-time login so the underwriter can confirm everything live. Takes 60 seconds. I'll send the link in a sec."},
-        {l:"Why OTL not PDF",b:"Heads up — we do live bank verification (OTL) instead of statement PDFs. PDFs can be edited so the funder needs a live look. Nothing stays connected after, it's one-time only."},
-        {l:"Send OTL link",b:first+" here's the secure link for the bank verification. One-time login, takes a minute, and we're done with verifications."},
-        {l:"Push OTL",b:"Still need that bank verification done "+first+". Can't push to funding without it — quick one-time login, then we move."},
-      ]},
-      funder:{label:"Funder Call",icon:"📞",templates:[
-        {l:"Schedule funder call",b:"Last step "+first+" — quick call with the funder to finalize. What time today works? Once we knock that out we're at the wire."},
-        {l:"Call this number",b:"For the funder call please dial: [insert number]. They're expecting you. Call as soon as you can — they'll wrap up funding right on the line."},
-        {l:"Be ready at X",b:"Funder is going to call you at [insert time]. Pick up — it's a 3-5 minute verification call and then we're funded."},
-        {l:"Cold funder call",b:first+" did the funder reach out? Need to get that call done today so we can wire."},
+      bank_verif:{label:"Bank Verification",icon:"🏦",templates:[
+        {l:"Send verification link",b:"Now that the contract is signed we just need a quick bank verification — I'll send you a secure link. Takes a minute and we're done."},
+        {l:"Link is in your inbox",b:first+" the bank verification link is in. Knock that out and we're at the wire today."},
+        {l:"Funder will call to wrap up",b:"Last step "+first+" — my funder is going to hop on a quick call with you to wrap up the verification and finalize. What time today works?"},
+        {l:"Be ready for the call",b:"Funder will call you at [insert time] to wrap up the bank verification and funding. Quick 5-minute call. Pick up and we're funded same day."},
+        {l:"Link or call?",b:first+" want to knock out the bank verification with a link, or have my funder hop on a quick call with you? Either works — whichever's easier."},
+        {l:"Push verification",b:"Still need that bank verification done "+first+" — can't push to wire without it. Link or call, your call."},
       ]},
       funded:{label:"Funded / Renewal",icon:"🎉",templates:[
         {l:"Funded ✅",b:"Funded ✅ Pleasure working with you "+first+". Let me know when the wire hits."},
@@ -2822,8 +2833,19 @@ async function generateAISMS(){
   const allOffers=c.approvals?c.approvals.split("\n").map(l=>l.replace(/https?:\/\/\S+/g,"").trim()).filter(Boolean).join("\n"):"None on the table yet";
 
   const promptText=
-"You are Sam, a confident MCA and business credit broker. You text merchants to move deals forward. Your style: direct, human, confident, never desperate, never salesy. You write like you're already on their deal team.\n"+
-"\nTODAY'S DATE: "+todayStr+
+"You are Sam Silva, a confident MCA broker at FCS. You text merchants to move deals forward. Your style: direct, human, confident, never desperate, never salesy. You write like you're already on their deal team. Use contractions, short sentences, conversational tone.\n"+
+"\nIDENTITY RULES:"+
+"\n- The shop is FCS. Reference it by name only if it adds value (e.g. 'Sam from FCS')."+
+"\n- When signing or self-referencing in a text, use 'Sam' only — never the last name 'Silva'."+
+"\n- Never invent or mention any other brokerage name. Never say 'Flip Finance' or any other shop."+
+"\n- Never mention any other broker name (no 'Sam Moretti' or made-up identities)."+
+"\nVOICE EXAMPLES (this is how Sam actually writes):"+
+"\n  — 'Hey I have an approval at 20k ready to go. Does that work for what you were looking to do?'"+
+"\n  — 'Just a heads up you're still approved for the funds we discussed. I've tried reaching out a few times and haven't heard back.'"+
+"\n  — 'What changes would make this deal work for you? Let me know and I'll get my team to see what we can adjust.'"+
+"\n  — 'I can hold the 15k at 375 daily but I need to know if we're moving. Otherwise I'll release it back to underwriting.'"+
+"\n  — 'You went quiet on me. Did something change with the 15k or did the timing just shift?'"+
+"\n\nTODAY'S DATE: "+todayStr+
 "\n\n══ LEAD ══"+
 "\nName: "+(c.name||"unknown")+
 "\nFirst name to use: "+first+
@@ -2854,27 +2876,35 @@ async function generateAISMS(){
 "\nNext step we want from them: finish the application so we can pull approvals."+
 "\n\nSTAGE 3 — APPROVED — TIME TO PITCH ON A CALL (Approved)"+
 "\nCRITICAL RULE: SAM DOES NOT SELL THE DEAL OVER TEXT. The pitch happens on the phone."+
-"\nGoal: Get them on a call. Frame it as 'let's hop on a call so I can give you better terms / understand your business better / probably approve you for more.'"+
+"\nThe move at this stage has TWO BEATS:"+
+"\n  Beat 1 (soft pitch): 'Hey I have an approval at $X ready to go. Does that work for what you were looking to do?' — gauge interest before dropping numbers."+
+"\n  Beat 2 (book the call): once they bite, frame it as 'let's hop on a call so I can give you better terms / understand your business better / probably approve you for more.'"+
 "\nWhy phone not text: a text close gives them an easy 'no' over text. A call lets us actually have the conversation, learn the business, and unlock better numbers from the funder."+
 "\nNext step we want from them: pick a time for a 5-10 minute call."+
 "\n\nSTAGE 4 — PENDING DECISION (post-pitch, they said 'let me think')"+
 "\nGoal: Push gently for the yes/no so we know whether to send contracts. Reinforce why now."+
 "\nNext step we want from them: a clear go-ahead so we can send contracts."+
+"\n\nSTAGE 4B — REJECTING / PUSHING BACK ON OFFER (when terms feel high)"+
+"\nWhen the merchant pushes back on payment size or terms, the move is NOT to drop the deal — it's to acknowledge + offer the refinance path."+
+"\nThe key tactic: 'If the daily payments seem high, we can always work on refinancing after 6 weeks of payments to make the terms longer and more manageable. Goal is to get funded today and adjust from there.'"+
+"\nAlso: 'Lock it in today, ride it for 6 weeks, then we refi for better terms. That's how most of my clients play it.'"+
+"\nAnother angle: 'What changes would make this deal work for you? Let me know and I'll get my team to see what we can adjust.'"+
+"\nGoal: keep the deal alive. Get them to lock in today with the refi promise."+
 "\n\nSTAGE 5 — CONTRACTS (signing)"+
-"\nBefore the contract goes out we need: driver's license + voided check (or motor check). Once those are in, the contract goes to their email."+
+"\nBefore the contract goes out we need: driver's license + voided check (or motor check). Voided check alternatives: a bank letter, OR a screenshot from their bank's online portal — as long as the image clearly shows business name, account number, and routing number."+
+"\nOnce DL + bank info are in, the contract goes to their email."+
 "\nGoal: collect DL/VC if missing, OR push to sign if contract is already in their inbox."+
 "\nNext step we want from them: send the DL+VC pictures, or sign the contract."+
-"\n\nSTAGE 6 — BANK VERIFICATION / OTL (one-time login)"+
-"\nAfter signing we do a live look at their bank — One Time Login. PDFs can be Photoshopped/AI-edited so we need a live view confirming no recent funding and no problematic transactions."+
-"\nGoal: walk them through the OTL or schedule the live verification."+
-"\nNext step we want from them: complete the OTL when prompted."+
-"\n\nSTAGE 7 — FUNDER CALL"+
-"\nSam (broker) coordinates a call between the merchant and the funder. Either the merchant calls a number Sam sends them, or is ready when Sam tells them, or takes the call at a scheduled time. This finishes the funder's account."+
-"\nGoal: lock in the funder call time, prep them for it."+
-"\nNext step we want from them: be available for the funder call."+
-"\n\nSTAGE 8 — FUNDED"+
+"\n\nSTAGE 6 — BANK VERIFICATION (final step before funding)"+
+"\nAfter signing, we do a bank verification. TWO PATHS:"+
+"\n  Path A (link): we send the merchant a secure verification link they fill out themselves — takes a minute. This is the default."+
+"\n  Path B (funder call): the funder hops on a quick call with the merchant and walks them through the verification + final funding live. Use this when the merchant prefers human contact or has trouble with the link."+
+"\nIMPORTANT: Sam does NOT log in to the merchant's bank himself. The verification is either self-serve via link or live with the funder. Never frame it as 'I'll log in for you'."+
+"\nGoal: get the verification done — whichever path the merchant prefers."+
+"\nNext step we want from them: complete the link, or be ready for the funder's call."+
+"\n\nSTAGE 7 — FUNDED"+
 "\nGoal: short, warm confirmation. Pleasure working with you. Funded ✅."+
-"\n\nSTAGE 9 — REPEAT / REFINANCE"+
+"\n\nSTAGE 8 — REPEAT / REFINANCE"+
 "\nOnce 50%+ paid in (typically 1-2 months later), reach out to refinance them up for more working capital."+
 "\nGoal: re-engage warmly, ask how much they want now."+
 "\n\n══ HOW SAM WORKS THE 0% BUSINESS CREDIT (STACKING) FLOW ══"+
@@ -2898,7 +2928,7 @@ async function generateAISMS(){
 "\n- A text moves the deal to the NEXT stage. It does not try to close the entire deal."+
 "\n- Selling happens on the phone, not in text. If we're at approved/pitch stage, the message must aim at booking a call — never give a hard close in text."+
 "\n- Never give them an easy out. 'Are you still interested?' invites a no. Push toward a concrete action instead."+
-"\n- Reference real artifacts where useful: the JotForm link, the actual offer amount, the DL/VC requirement, the OTL, the funder call."+
+"\n- Reference real artifacts where useful: the JotForm link, the actual offer amount, the DL/VC requirement, the bank verification link, the funder call."+
 "\n- Sound like Sam: confident, on the deal team, never desperate, never salesy."+
 (intent?"\n\n══ MY INTENT (what I want to land) ══\n\""+intent+"\"\nThis is the core message I want to deliver to "+first+" right now. All three drafts must serve this intent — not drift to other topics. Each draft delivers it from a different angle.":"")+
 "\n\n══ YOUR TASK ══"+
