@@ -288,11 +288,10 @@ const SHEET_URL="https://script.google.com/macros/s/AKfycbw57s4pi6D-Fan_aoqPGHvA
 let SHEETS=(function(){
   try{
     const c=JSON.parse(localStorage.getItem("ffc_sheets_cache")||"[]");
-    if(c&&c.length){c.forEach(function(s){s.url=SHEET_URL;});return c.slice(0,2);}
+    if(c&&c.length){c.forEach(function(s){s.url=SHEET_URL;});return c;}
   }catch{}
   return[
-    {label:"Fundflexcap",tab:"Fundflexcap",cache:"ffc_fundflexcap_v1",url:SHEET_URL},
-    {label:"Sam Leads",tab:"Sam Leads",cache:"ffc_sam_leads_v1",url:SHEET_URL}
+    {label:"Fundflexcap",tab:"Fundflexcap",cache:"ffc_fundflexcap_v1",url:SHEET_URL}
   ];
 })();
 let activeSheet=parseInt(localStorage.getItem("ffc_activeSheetIdx")||"0");
@@ -321,7 +320,7 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
   <!-- CENTER: nav always centered -->
   <div style="display:flex;align-items:center;gap:8px">
     <button onclick="go(-1)" id="nav-prev" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0" ontouchend="event.preventDefault();go(-1)">‹</button>
-    <span id="nav-count" class="nav-count">— / —</span>
+    <button onclick="syncGoFirst();toast('↩ Going to first lead…')" id="nav-count" class="nav-count" style="cursor:pointer;font-family:inherit;touch-action:manipulation" title="Tap to refresh and go to first lead">— / —</button>
     <button onclick="go(1)" id="nav-next" style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.25);color:#a78bfa;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0" ontouchend="event.preventDefault();go(1)">›</button>
   </div>
   <!-- RIGHT: Wait pill -->
@@ -447,7 +446,7 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
     <div style="overflow-y:auto;padding:12px 14px 24px;-webkit-overflow-scrolling:touch">
       <div id="sms-template-list"></div>
       <div style="margin-top:14px;border-top:1px solid rgba(45,37,80,.5);padding-top:14px" id="sms-ai-section">
-        <input id="ai-sms-intent" type="text" placeholder="Tap a chip below or type your own — then tap the AI button" autocomplete="off" style="width:100%;background:rgba(0,0,0,.25);border:1px solid rgba(124,58,237,.25);border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;box-sizing:border-box;font-family:inherit;margin-bottom:8px">
+        <textarea id="ai-sms-intent" placeholder="Tap a chip below or type your own prompt — then tap the AI button" autocomplete="off" rows="2" style="width:100%;background:rgba(0,0,0,.25);border:1px solid rgba(124,58,237,.25);border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;box-sizing:border-box;font-family:inherit;margin-bottom:8px;resize:none;line-height:1.45;min-height:42px"></textarea>
         <div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.42);margin:2px 0 4px">💼 MCA flow</div>
         <div id="ai-intent-chips" style="display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;-ms-overflow-style:none">
           <button onclick="setIntent(this,'qualify the lead — ask for email and how much they need')" class="ai-chip" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;flex-shrink:0;touch-action:manipulation">📧 Get email</button>
@@ -1176,6 +1175,23 @@ function renderCard(){
   const remDiff=remData?remData.due-Date.now():0;
   const remDue=remData?(remData.fired||remDiff<=0):false;
   const remTime=remData?(remDue?"Due now":(Math.floor(remDiff/3600000)>0?Math.floor(remDiff/3600000)+"h ":"")+Math.floor((remDiff%3600000)/60000)+"m"):"";
+  // For wait-expired reminders, compute how long ago the timer ended
+  const remFromWait=!!(remData&&remData.fromWait&&remData.expiredAt);
+  const remAgoMs=remFromWait?(Date.now()-remData.expiredAt):0;
+  const remAgoText=(function(){
+    if(!remFromWait)return"";
+    const m=Math.floor(remAgoMs/60000);
+    if(m<1)return"just now";
+    if(m<60)return m+"m ago";
+    const h=Math.floor(m/60);
+    if(h<24)return h+"h "+(m%60)+"m ago";
+    const d=Math.floor(h/24);
+    return d+"d "+(h%24)+"h ago";
+  })();
+  // Kicker line: "REMINDER · DUE NOW" or "REMINDER · Wait ended 12m ago" or just "REMINDER"
+  const remKicker=remFromWait
+    ? "Reminder · Wait ended "+remAgoText
+    : (remDue?"Reminder · Due now":"Reminder");
   // Reminder = rounded amber pill, inset like a sticky note attached to the card
   // Distinctly different from the status color bar (sits below it, not on top)
   const htmlRemStrip=isOnReminder?(
@@ -1183,14 +1199,15 @@ function renderCard(){
       '<div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;overflow:hidden">'+
         '<span style="font-size:16px;'+(remDue?'animation:pulse 1.4s ease-in-out infinite':'')+'">🔔</span>'+
         '<div style="display:flex;flex-direction:column;min-width:0;flex:1">'+
-          '<span style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(251,191,36,.7);line-height:1">'+(remDue?'Reminder · Due now':'Reminder')+'</span>'+
-          '<span style="font-size:13px;font-weight:800;color:'+(remDue?'#fcd34d':'#fbbf24')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">'+remLabel+(remDue?'':' <span style="font-weight:700;color:rgba(251,191,36,.55)">· '+remTime+'</span>')+'</span>'+
+          '<span style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(251,191,36,.7);line-height:1">'+remKicker+'</span>'+
+          '<span style="font-size:13px;font-weight:800;color:'+(remDue?'#fcd34d':'#fbbf24')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">'+remLabel+(remDue||remFromWait?'':' <span style="font-weight:700;color:rgba(251,191,36,.55)">· '+remTime+'</span>')+'</span>'+
         '</div>'+
       '</div>'+
       '<button onclick="event.stopPropagation();clearReminder('+c.row+')" style="padding:6px 12px;border-radius:8px;background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.4);color:#fcd34d;font-size:11px;font-weight:800;flex-shrink:0;touch-action:manipulation;line-height:1">✕ Dismiss</button>'+
     '</div>'
   ):'';
-  const htmlTags=nonWaitTags.map(function(t){return'<span class="tag-pill" style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);color:#a78bfa'+(isOnWait?';opacity:.4':'')+'">'+ t+'</span>';}).join('');
+  // Tags rendered inline next to status (compact, smaller) AND in meta row (legacy fallback if needed)
+  const htmlTagsCompact=nonWaitTags.map(function(t){return'<span style="display:inline-flex;align-items:center;font-size:10px;font-weight:800;letter-spacing:.03em;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.85);white-space:nowrap'+(isOnWait?';opacity:.4':'')+'">'+t+'</span>';}).join('');
   const htmlSetRem=isOnReminder?'':'<button onclick="openReminderPicker('+c.row+')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(245,158,11,.08);border:1.5px solid rgba(245,158,11,.35);color:#fbbf24;white-space:nowrap;touch-action:manipulation">🔔 Reminder</button>';
   const htmlSmsBtn=ph?('<button class="btn-sms" onclick="openSMSPicker('+idx+')">💬 Text</button>'):'<button class="btn-sms off" style="cursor:not-allowed">💬 Text</button>';
   const htmlOffersBlock=(function(){if(!c.approvals)return'';const lines=c.approvals.split("\n").map(function(line){const l=line.trim();if(!l||l.startsWith("http"))return"";return'<button onclick="copySingleOffer('+idx+',this.dataset.offer)" data-offer="'+l.replace(/"/g,"&quot;")+'" style="width:100%;text-align:left;padding:8px 10px;margin-bottom:5px;background:rgba(255,255,255,.04);border:1px solid rgba(45,37,80,.6);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;touch-action:manipulation;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>'+l+'</span><span style="color:var(--sub);font-size:11px;flex-shrink:0">copy</span></button>';}).join("");return'<div style="border-top:1px solid rgba(45,37,80,.6);padding:10px 12px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">📋 All Offers</div><button onclick="copyAllOffers('+idx+')" style="padding:5px 12px;border-radius:16px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.35);color:var(--gold);font-size:11px;font-weight:800;touch-action:manipulation">Copy all</button></div>'+lines+'</div>';}());
@@ -1203,7 +1220,10 @@ function renderCard(){
         +'<span style="width:8px;height:8px;border-radius:50%;background:'+accentColor+';flex-shrink:0;box-shadow:0 0 8px '+accentColor+'"></span>'
         +'<span style="font-size:13px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:'+(ss?ss.color:'rgba(255,255,255,.6)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(rawLabel||"Set status")+'</span>'
       +'</div>'
-      +'<span style="font-size:10px;color:rgba(255,255,255,.35);flex-shrink:0">tap to change</span>'
+      +'<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
+        +htmlTagsCompact
+        +(htmlTagsCompact?'':'<span style="font-size:10px;color:rgba(255,255,255,.35)">tap to change</span>')
+      +'</div>'
     +'</div>'
     +'<div class="card-header" style="'+headerBg+'">'
       +'<div class="card-header-top">'
@@ -1222,7 +1242,7 @@ function renderCard(){
       +'</div>'
       +htmlWaitBanner
       +'<div class="card-meta-row">'
-        +htmlTags+buildCbHtml(c)+htmlSetRem
+        +buildCbHtml(c)+htmlSetRem
       +'</div>'
       +'<div style="padding:0 16px 12px;display:flex;align-items:flex-start;gap:8px">'
         +'<span style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);flex-shrink:0;padding-top:9px">Status</span>'
@@ -1307,7 +1327,7 @@ function restoreReminderTimers(){
     const r=(c.reminder||"").trim();
     // Col M empty = no reminder
     if(!r){localStorage.removeItem(key);return;}
-    // Already restored this session — keep it
+    // Already restored this session — keep it (preserves fromWait/expiredAt flags)
     if(localStorage.getItem(key))return;
     // Parse "[Label] due Apr 30, 2026 at 5:00 PM"
     let due=Date.now(),label="Reminder",fired=true;
@@ -1317,8 +1337,12 @@ function restoreReminderTimers(){
       const parsed=parseWaitDate(m[2]);
       if(parsed){due=parsed;fired=parsed<=Date.now();}
     }
-    // Always restore — never clear automatically
-    localStorage.setItem(key,JSON.stringify({due,label,fired}));
+    // Detect wait-expired reminders: label starts with "Wait expired"
+    // Reconstruct fromWait + expiredAt so the "X ago" pill works after a reload
+    const isFromWait=/^wait expired/i.test(label);
+    const obj={due,label,fired};
+    if(isFromWait){obj.fromWait=true;obj.expiredAt=due;}
+    localStorage.setItem(key,JSON.stringify(obj));
   });
 }
 
@@ -1475,22 +1499,34 @@ function startTick(){
         if(diff<=0){
           anyExpired=true;
           _notified5min.delete(ct.row);
+          // Capture original wait info BEFORE we clear it
+          const expiredLabel=label||"Wait";
+          const expiredAt=due; // ms timestamp when timer hit zero
           localStorage.removeItem(CB_KEY(ct.row));
           const c=contacts.find(x=>x.row===ct.row);
           if(c){c.waitUntil="";}
           const sh=currentSheet();
           fetch(sh.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
             body:JSON.stringify({action:"clearWait",sheet:sh.tab,row:ct.row})});
-          // Auto-set a reminder so the lead returns to main pool with an obvious "ready to call" flag
-          const remLabel="Wait expired — ready to call";
-          localStorage.setItem(REM_KEY(ct.row),JSON.stringify({due:Date.now(),label:remLabel,fired:true}));
-          if(c){
-            const dStr=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})+" at "+new Date().toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
-            c.reminder="["+remLabel+"] due "+dStr;saveC();
-            fetch(sh.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
-              body:JSON.stringify({action:"updateCell",sheet:sh.tab,row:ct.row,field:"reminder",value:c.reminder})});
+          // Auto-set a reminder that includes the original wait note + when it expired
+          // Don't overwrite an existing reminder — keep what's there
+          const existingRem=localStorage.getItem(REM_KEY(ct.row));
+          if(!existingRem){
+            // Format: "Wait expired: <original note>" so we know what it was for
+            const remLabel=expiredLabel&&expiredLabel!=="Wait"
+              ? "Wait expired: "+expiredLabel
+              : "Wait expired — ready to call";
+            // Store expiredAt so the pill can show "ended Xm ago"
+            localStorage.setItem(REM_KEY(ct.row),JSON.stringify({due:expiredAt,label:remLabel,fired:true,fromWait:true,expiredAt:expiredAt}));
+            if(c){
+              const expiredDate=new Date(expiredAt);
+              const dStr=expiredDate.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})+" at "+expiredDate.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+              c.reminder="["+remLabel+"] due "+dStr;saveC();
+              fetch(sh.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+                body:JSON.stringify({action:"updateCell",sheet:sh.tab,row:ct.row,field:"reminder",value:c.reminder})});
+            }
           }
-          sendNotification("📞 "+( ct.name||"Lead")+" is back — time to call",(ct.company||"")+" — wait expired","expire_"+ct.row);
+          sendNotification("📞 "+(ct.name||"Lead")+" is back — time to call",(ct.company||"")+(expiredLabel&&expiredLabel!=="Wait"?" · "+expiredLabel:" — wait expired"),"expire_"+ct.row);
           toast("📞 "+(ct.name||"Lead")+" — wait over, reminder set!");
         }
       }
@@ -1662,21 +1698,24 @@ function showSheetPicker(){
   ov.id="sheet-picker-ov";
   ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(20px)";
   const box=document.createElement("div");
-  box.style.cssText="background:linear-gradient(145deg,#1a1040,#130e2e);border:1px solid rgba(124,58,237,.3);border-radius:22px;padding:28px 24px;width:100%;max-width:360px";
-  box.innerHTML='<div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:6px">Choose Sheet</div>'+
-    '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:16px">'+SHEETS.length+' sheets found · sync keeps this updated</div>'+
-    '<div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:20px">Which tab to load?</div>';
+  box.style.cssText="background:linear-gradient(145deg,#1a1040,#130e2e);border:1px solid rgba(124,58,237,.3);border-radius:22px;padding:24px 22px;width:100%;max-width:360px;max-height:80vh;display:flex;flex-direction:column";
+  box.innerHTML='<div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:6px;flex-shrink:0">Choose Sheet</div>'+
+    '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:16px;flex-shrink:0">'+SHEETS.length+' sheet'+(SHEETS.length===1?'':'s')+' found · sync keeps this updated</div>';
+  // Scrollable list area
+  const list=document.createElement("div");
+  list.style.cssText="flex:1;overflow-y:auto;margin-bottom:14px;-webkit-overflow-scrolling:touch";
   SHEETS.forEach(function(s,i){
     const btn=document.createElement("button");
     const isActive=i===activeSheet;
     btn.style.cssText="width:100%;padding:14px 18px;border-radius:14px;font-size:15px;font-weight:700;text-align:left;margin-bottom:10px;touch-action:manipulation;display:flex;align-items:center;justify-content:space-between;"+(isActive?"background:rgba(124,58,237,.2);border:1.5px solid rgba(201,162,39,.4);color:#fff":"background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);color:rgba(255,255,255,.7)");
-    btn.innerHTML='<span>'+s.label+'</span>'+(isActive?'<span style="font-size:11px;color:var(--gold)">Current</span>':'<span style="font-size:12px;color:rgba(255,255,255,.3)">→</span>');
+    btn.innerHTML='<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;text-align:left">'+s.label+'</span>'+(isActive?'<span style="font-size:11px;color:var(--gold);flex-shrink:0;margin-left:8px">Current</span>':'<span style="font-size:12px;color:rgba(255,255,255,.3);flex-shrink:0;margin-left:8px">→</span>');
     btn.ontouchend=function(e){e.preventDefault();selectSheet(i);ov.remove();};
     btn.onclick=function(){selectSheet(i);ov.remove();};
-    box.appendChild(btn);
+    list.appendChild(btn);
   });
+  box.appendChild(list);
   const cancel=document.createElement("button");
-  cancel.textContent="Cancel";cancel.style.cssText="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);font-size:14px;font-weight:700;touch-action:manipulation";
+  cancel.textContent="Cancel";cancel.style.cssText="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);font-size:14px;font-weight:700;touch-action:manipulation;flex-shrink:0";
   cancel.onclick=function(){ov.remove();};
   box.appendChild(cancel);ov.appendChild(box);document.body.appendChild(ov);
 }
@@ -1918,7 +1957,7 @@ function initSheets(){
     try{
       const parsed=JSON.parse(cached);
       if(parsed&&parsed.length){
-        SHEETS=parsed.slice(0,2);
+        SHEETS=parsed;
         SHEETS.forEach(function(s){s.url=SHEET_URL;});
         _sheetsFetched=true;
         if(activeSheet>=SHEETS.length){activeSheet=0;localStorage.setItem("ffc_activeSheetIdx","0");}
@@ -1926,11 +1965,11 @@ function initSheets(){
     }catch{}
   }
 
-  // No cache — use hardcoded first-sheet placeholder so we can start loading immediately
+  // No cache — start with a single placeholder sheet so the app can boot.
+  // The real list comes from fetchSheets() below.
   if(!SHEETS.length||!SHEETS[0].tab){
     SHEETS=[
-      {label:"Fundflexcap",tab:"Fundflexcap",cache:"ffc_fundflexcap_v1",url:SHEET_URL},
-      {label:"Sam Leads",tab:"Sam Leads",cache:"ffc_sam_leads_v1",url:SHEET_URL}
+      {label:"Fundflexcap",tab:"Fundflexcap",cache:"ffc_fundflexcap_v1",url:SHEET_URL}
     ];
   }
 
@@ -2610,7 +2649,18 @@ function openSMSPicker(ri){
   var aiBtn=document.getElementById("ai-sms-btn");
   if(aiBtn){aiBtn.innerHTML="✨ Write message with AI";aiBtn.disabled=false;}
   var aiIntent=document.getElementById("ai-sms-intent");
-  if(aiIntent)aiIntent.value="";
+  if(aiIntent){
+    aiIntent.value="";
+    aiIntent.style.height=""; // reset to CSS default (2 rows)
+    // Live auto-grow as user types (only wire once)
+    if(!aiIntent.dataset.grow){
+      aiIntent.dataset.grow="1";
+      aiIntent.addEventListener("input",function(){
+        aiIntent.style.height="auto";
+        aiIntent.style.height=Math.min(aiIntent.scrollHeight,220)+"px";
+      });
+    }
+  }
   var c=contacts[ri];
   if(!c){toast("No contact");return;}
   var phone=(c.phone||"").replace(/\D/g,"");
@@ -2784,6 +2834,9 @@ function setIntent(btn, text){
   const input=$("ai-sms-intent");
   if(input){
     input.value=text;
+    // Auto-grow the textarea to fit pasted content
+    input.style.height="auto";
+    input.style.height=Math.min(input.scrollHeight,220)+"px";
     // Focus + place cursor at end so they can edit immediately
     try{input.focus();input.setSelectionRange(text.length,text.length);}catch{}
   }
@@ -2824,6 +2877,12 @@ async function generateAISMS(){
   const c=contacts[_smsIdx];
   if(!c)return;
   btn.innerHTML="✨ Writing 3 drafts…";btn.disabled=true;
+
+  // Clear previous drafts immediately and show 3 loading skeletons so user knows new content is coming
+  cards.innerHTML='<div style="background:rgba(239,68,68,.04);border:1px dashed rgba(239,68,68,.25);border-radius:14px;padding:16px;color:rgba(252,165,165,.5);font-size:12px;font-weight:700;text-align:center;animation:pulse 1.4s ease-in-out infinite">🎯 Generating direct push…</div>'
+    +'<div style="background:rgba(59,130,246,.04);border:1px dashed rgba(59,130,246,.25);border-radius:14px;padding:16px;color:rgba(147,197,253,.5);font-size:12px;font-weight:700;text-align:center;animation:pulse 1.4s ease-in-out infinite;animation-delay:.15s">💬 Generating soft check-in…</div>'
+    +'<div style="background:rgba(201,162,39,.05);border:1px dashed rgba(201,162,39,.3);border-radius:14px;padding:16px;color:rgba(252,211,77,.5);font-size:12px;font-weight:700;text-align:center;animation:pulse 1.4s ease-in-out infinite;animation-delay:.3s">⚡ Generating value / urgency…</div>';
+  cards.style.display="flex";
 
   // ── Build comprehensive lead context ──
   const first=(c.name||"").split(" ")[0]||"there";
@@ -3049,13 +3108,13 @@ async function generateAISMS(){
   try{
     let data=await callGeminiServer();
     // Apps Script handled overload retries internally; if still erroring, surface it
-    if(data.error){toast("AI error: "+data.error);btn.innerHTML="✨ Write message with AI";btn.disabled=false;return;}
+    if(data.error){toast("AI error: "+data.error);cards.innerHTML="";cards.style.display="none";btn.innerHTML="✨ Write message with AI";btn.disabled=false;return;}
 
     const raw=(data.text||"").trim();
     const parsed=parseAIJSON(raw);
     const msgs=(parsed&&Array.isArray(parsed.messages))?parsed.messages.filter(m=>m&&m.text):[];
 
-    if(!msgs.length){toast("Couldn't generate — try again");btn.innerHTML="✨ Write message with AI";btn.disabled=false;return;}
+    if(!msgs.length){toast("Couldn't generate — try again");cards.innerHTML="";cards.style.display="none";btn.innerHTML="✨ Write message with AI";btn.disabled=false;return;}
 
     // Three distinct accent colors per angle
     const accents=[
@@ -3087,7 +3146,7 @@ async function generateAISMS(){
       requestAnimationFrame(grow);
     });
     cards.style.display="flex";
-  }catch(e){toast("Network error: "+e.message);}
+  }catch(e){toast("Network error: "+e.message);cards.innerHTML="";cards.style.display="none";}
   btn.innerHTML="✨ Regenerate 3 drafts";btn.disabled=false;
 }
 
