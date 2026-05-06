@@ -530,10 +530,10 @@ function avColor(i){return AV_COLORS[i%AV_COLORS.length];}
 function buildCbHtml(c){
   const stored=localStorage.getItem(CB_KEY(c.row));
   if(!stored){
-    return`<button onclick="openCallbackPicker(${c.row})" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(240,68,68,.08);border:1.5px solid rgba(240,68,68,.3);color:#f87171;white-space:nowrap;touch-action:manipulation">⏸ Wait timer</button>`;
+    return`<button onclick="openCallbackPicker(${c.row})" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(240,68,68,.05);border:1px solid rgba(240,68,68,.2);color:rgba(248,113,113,.78);font-weight:700;white-space:nowrap;touch-action:manipulation">⏸ Wait timer</button>`;
   }
   const{due,label}=JSON.parse(stored);
-  if(due-Date.now()<-30000){clearCb(c.row);return`<button onclick="openCallbackPicker(${c.row})" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(240,68,68,.08);border:1.5px solid rgba(240,68,68,.3);color:#f87171;white-space:nowrap;touch-action:manipulation">⏸ Wait timer</button>`;}
+  if(due-Date.now()<-30000){clearCb(c.row);return`<button onclick="openCallbackPicker(${c.row})" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(240,68,68,.05);border:1px solid rgba(240,68,68,.2);color:rgba(248,113,113,.78);font-weight:700;white-space:nowrap;touch-action:manipulation">⏸ Wait timer</button>`;}
   const diff=due-Date.now();
   const borderColor=diff<3600000?"rgba(245,158,11,.5)":"rgba(0,194,122,.5)";
   const bgColor=diff<3600000?"rgba(245,158,11,.1)":"rgba(0,194,122,.1)";
@@ -548,7 +548,7 @@ function buildCbHtml(c){
 function buildRemHtml(c){
   const stored=localStorage.getItem(REM_KEY(c.row));
   if(!stored){
-    return`<button onclick="openReminderPicker(${c.row})" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(245,158,11,.08);border:1.5px solid rgba(245,158,11,.35);color:#fbbf24;white-space:nowrap;touch-action:manipulation">🔔 Reminder</button>`;
+    return`<button onclick="openReminderPicker(${c.row})" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.22);color:rgba(251,191,36,.78);font-weight:700;white-space:nowrap;touch-action:manipulation">🔔 Reminder</button>`;
   }
   const{due,label,fired}=JSON.parse(stored);
   const diff=due-Date.now();
@@ -667,18 +667,22 @@ function openTagPicker(idx){
   _tpSelected=new Set(
     (c.tags||"").split(",").map(t=>t.trim()).filter(t=>t&&t.toLowerCase()!=="wait")
   );
-  // Also seed ALL_TAGS from currently-loaded contacts so picker isn't empty before fetch
-  if(!ALL_TAGS.length){
-    const seen={};
-    contacts.forEach(function(ct){
-      (ct.tags||"").split(",").forEach(function(part){
-        const v=part.trim();
-        if(v&&v.toLowerCase()!=="wait"&&!seen[v]){seen[v]=true;ALL_TAGS.push(v);}
-      });
+  // ALWAYS rebuild ALL_TAGS from currently-loaded contacts so picker opens instantly
+  // with whatever tags are in use — fetch only adds new ones from validation later
+  const seen={};
+  ALL_TAGS=[];
+  contacts.forEach(function(ct){
+    (ct.tags||"").split(",").forEach(function(part){
+      const v=part.trim();
+      if(v&&v.toLowerCase()!=="wait"&&!seen[v.toLowerCase()]){
+        seen[v.toLowerCase()]=true;
+        ALL_TAGS.push(v);
+      }
     });
-  }
+  });
+  // Render immediately with what we have — picker is interactive within one frame
   buildTagPickerUI();
-  // Background fetch fresh list from col F validation
+  // Background fetch col F validation list (fast, but no longer blocks UI)
   const s=currentSheet();
   const baseUrl=s.url||SHEET_URL;
   fetch(baseUrl+"?action=tags&sheet="+encodeURIComponent(s.tab)+"&t="+Date.now())
@@ -687,19 +691,20 @@ function openTagPicker(idx){
       try{
         const data=JSON.parse(text);
         if(data.tags&&Array.isArray(data.tags)){
-          // Merge — keep order, add anything new
-          const seen={};
-          ALL_TAGS.forEach(function(t){seen[t.toLowerCase()]=true;});
+          let added=false;
           data.tags.forEach(function(t){
             const v=String(t||"").trim();
             if(v&&v.toLowerCase()!=="wait"&&!seen[v.toLowerCase()]){
               seen[v.toLowerCase()]=true;
               ALL_TAGS.push(v);
+              added=true;
             }
           });
-          // Re-render if picker still open on same lead
-          const ov=document.getElementById("tag-picker-ov");
-          if(ov&&_tpIdx===idx)buildTagPickerUI();
+          // Only re-render if we actually got new tags AND the picker is still open on this lead
+          if(added){
+            const ov=document.getElementById("tag-picker-ov");
+            if(ov&&_tpIdx===idx)buildTagPickerUI();
+          }
         }
       }catch{}
     })
@@ -1401,7 +1406,7 @@ function renderCard(){
     return'<span onclick="event.stopPropagation();openTagPicker('+idx+')" style="display:inline-flex;align-items:center;font-size:10px;font-weight:800;letter-spacing:.03em;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.85);white-space:nowrap;cursor:pointer'+(isOnWait?';opacity:.4':'')+'">'+t+'</span>';
   }).join('');
   const htmlAddTagBtn='<button onclick="event.stopPropagation();openTagPicker('+idx+')" style="display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.25);color:rgba(255,255,255,.6);cursor:pointer;touch-action:manipulation;line-height:1;padding:0" title="Add tag">+</button>';
-  const htmlSetRem=isOnReminder?'':'<button onclick="openReminderPicker('+c.row+')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(245,158,11,.08);border:1.5px solid rgba(245,158,11,.35);color:#fbbf24;white-space:nowrap;touch-action:manipulation">🔔 Reminder</button>';
+  const htmlSetRem=isOnReminder?'':'<button onclick="openReminderPicker('+c.row+')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.22);color:rgba(251,191,36,.78);font-weight:700;white-space:nowrap;touch-action:manipulation">🔔 Reminder</button>';
   const htmlSmsBtn=ph?('<button class="btn-sms" onclick="openSMSPicker('+idx+')">💬 Text</button>'):'<button class="btn-sms off" style="cursor:not-allowed">💬 Text</button>';
   const htmlOffersBlock=(function(){if(!c.approvals)return'';const lines=c.approvals.split("\n").map(function(line){const l=line.trim();if(!l||l.startsWith("http"))return"";return'<button onclick="copySingleOffer('+idx+',this.dataset.offer)" data-offer="'+l.replace(/"/g,"&quot;")+'" style="width:100%;text-align:left;padding:8px 10px;margin-bottom:5px;background:rgba(255,255,255,.04);border:1px solid rgba(45,37,80,.6);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;touch-action:manipulation;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>'+l+'</span><span style="color:var(--sub);font-size:11px;flex-shrink:0">copy</span></button>';}).join("");return'<div style="border-top:1px solid rgba(45,37,80,.6);padding:10px 12px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">📋 All Offers</div><button onclick="copyAllOffers('+idx+')" style="padding:5px 12px;border-radius:16px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.35);color:var(--gold);font-size:11px;font-weight:800;touch-action:manipulation">Copy all</button></div>'+lines+'</div>';}());
 
@@ -1435,7 +1440,7 @@ function renderCard(){
       +'</div>'
       +htmlWaitBanner
       +'<div class="card-meta-row">'
-        +buildCbHtml(c)+htmlSetRem
+        +htmlSetRem+buildCbHtml(c)
       +'</div>'
       +'<div style="padding:0 16px 12px;display:flex;align-items:flex-start;gap:8px">'
         +'<span style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);flex-shrink:0;padding-top:9px">Status</span>'
