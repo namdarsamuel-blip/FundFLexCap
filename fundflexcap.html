@@ -537,10 +537,10 @@ function avColor(i){return AV_COLORS[i%AV_COLORS.length];}
 function buildCbHtml(c){
   const stored=localStorage.getItem(CB_KEY(c.row));
   if(!stored){
-    return`<button class="cb-pill set" onclick="openCallbackPicker(${c.row})" style="display:inline-flex;align-items:center;gap:5px">⏰ Set wait timer</button>`;
+    return`<button onclick="openCallbackPicker(${c.row})" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(240,68,68,.08);border:1.5px solid rgba(240,68,68,.3);color:#f87171;white-space:nowrap;touch-action:manipulation">⏸ Wait timer</button>`;
   }
   const{due,label}=JSON.parse(stored);
-  if(due-Date.now()<-30000){clearCb(c.row);return`<button class="cb-pill set" onclick="openCallbackPicker(${c.row})" style="display:inline-flex;align-items:center;gap:5px">⏰ Set wait timer</button>`;}
+  if(due-Date.now()<-30000){clearCb(c.row);return`<button onclick="openCallbackPicker(${c.row})" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(240,68,68,.08);border:1.5px solid rgba(240,68,68,.3);color:#f87171;white-space:nowrap;touch-action:manipulation">⏸ Wait timer</button>`;}
   const diff=due-Date.now();
   const borderColor=diff<3600000?"rgba(245,158,11,.5)":"rgba(0,194,122,.5)";
   const bgColor=diff<3600000?"rgba(245,158,11,.1)":"rgba(0,194,122,.1)";
@@ -555,7 +555,7 @@ function buildCbHtml(c){
 function buildRemHtml(c){
   const stored=localStorage.getItem(REM_KEY(c.row));
   if(!stored){
-    return`<button class="cb-pill set" onclick="openReminderPicker(${c.row})" style="display:inline-flex;align-items:center;gap:5px">🔔 Set reminder</button>`;
+    return`<button onclick="openReminderPicker(${c.row})" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(245,158,11,.08);border:1.5px solid rgba(245,158,11,.35);color:#fbbf24;white-space:nowrap;touch-action:manipulation">🔔 Reminder</button>`;
   }
   const{due,label,fired}=JSON.parse(stored);
   const diff=due-Date.now();
@@ -903,13 +903,17 @@ function openCallbackPicker(row){
     {l:"45 min",ms:2700000},{l:"1 hour",ms:3600000},{l:"2 hours",ms:7200000},{l:"3 hours",ms:10800000},
     {l:"4 hours",ms:14400000},{l:"Tomorrow",ms:86400000},{l:"2 days",ms:172800000},{l:"Next week",ms:604800000},
   ];
+  const removeBlock=cur
+    ? `<button onclick="clearCb(${row});document.getElementById('cb-ov').style.display='none'" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove timer</button>`
+    : "";
   ov.innerHTML=`<div style="width:100%;background:linear-gradient(180deg,#1a1040,#130e2e);border-radius:24px 24px 0 0;border-top:1px solid rgba(245,158,11,.4);padding:0 0 50px;max-height:92vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.16,1,.3,1) both">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;border-bottom:1px solid rgba(45,37,80,.5)">
       <div style="font-size:18px;font-weight:900;color:#fff">⏱ Set Wait Timer</div>
-      <button onclick="$('cb-ov').style.display='none'" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center">✕</button>
+      <button onclick="document.getElementById('cb-ov').style.display='none'" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <div style="padding:16px 16px 0">
-      <input id="cb-label" value="${cur?.label||""}" placeholder="Note (optional) — tap return when done"
+      <input id="cb-label" value="${cur&&cur.label?cur.label:""}" placeholder="Note (optional) — tap return when done"
+        autocomplete="off" autocapitalize="sentences"
         style="width:100%;padding:14px;background:rgba(255,255,255,.07);border:2px solid rgba(245,158,11,.35);border-radius:14px;color:#fff;font-size:15px;font-weight:600;box-sizing:border-box;margin-bottom:16px;outline:none"
         onfocus="this.style.borderColor='#f59e0b'" onblur="this.style.borderColor='rgba(245,158,11,.35)'"
         onkeydown="if(event.key==='Enter'){this.blur();}"/>
@@ -920,11 +924,13 @@ function openCallbackPicker(row){
         <input type="datetime-local" id="cb-datetime" value="${dtDefault}" style="flex:1;padding:12px 14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:12px;color:var(--text);font-size:13px;color-scheme:dark"/>
         <button onclick="setCustomTime(${row})" style="padding:12px 16px;border-radius:12px;background:rgba(245,158,11,.15);border:1.5px solid rgba(245,158,11,.4);color:#f59e0b;font-size:14px;font-weight:700;touch-action:manipulation;white-space:nowrap">Set time</button>
       </div>
-      "+(cur?'<button onclick="clearCb('+row+');$(\"cb-ov\").style.display=\"none\"" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove timer</button>':"")+"
+      ${removeBlock}
     </div>
   </div>`;
   ov.style.display="flex";
-  setTimeout(function(){const inp=document.getElementById("cb-label");if(inp)inp.focus();},100);
+  // Synchronous focus inside the gesture stack — required for iOS keyboard
+  const inp=document.getElementById("cb-label");
+  if(inp)inp.focus();
 }
 
 function setCustomTime(row){
@@ -1179,26 +1185,32 @@ function renderCard(){
   // Reminder = rounded amber pill, inset like a sticky note attached to the card
   // Distinctly different from the status color bar (sits below it, not on top)
   const htmlRemStrip=isOnReminder?(
-    '<div onclick="openReminderPicker('+c.row+')" style="margin:9px 12px 0;padding:9px 11px;border-radius:11px;background:linear-gradient(135deg,rgba(245,158,11,'+(remDue?'.32':'.18')+') 0%,rgba(245,158,11,'+(remDue?'.14':'.06')+') 100%);border:1px solid rgba(245,158,11,'+(remDue?'.55':'.4')+');display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;box-shadow:'+(remDue?'0 0 16px rgba(245,158,11,.25), inset 0 0 0 1px rgba(245,158,11,.15)':'0 1px 0 rgba(245,158,11,.08)')+'">'+
-      '<div style="display:flex;align-items:center;gap:9px;min-width:0;flex:1;overflow:hidden">'+
-        '<span style="font-size:15px;'+(remDue?'animation:pulse 1.4s ease-in-out infinite':'')+'">🔔</span>'+
+    '<div onclick="openReminderPicker('+c.row+')" style="margin:0 0 8px;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,rgba(245,158,11,'+(remDue?'.28':'.16')+') 0%,rgba(245,158,11,'+(remDue?'.12':'.05')+') 100%);border:1.5px solid rgba(245,158,11,'+(remDue?'.55':'.4')+');display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;box-shadow:'+(remDue?'0 0 24px rgba(245,158,11,.3), inset 0 0 0 1px rgba(245,158,11,.18)':'0 2px 8px rgba(245,158,11,.08)')+'">'+
+      '<div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;overflow:hidden">'+
+        '<span style="font-size:16px;'+(remDue?'animation:pulse 1.4s ease-in-out infinite':'')+'">🔔</span>'+
         '<div style="display:flex;flex-direction:column;min-width:0;flex:1">'+
           '<span style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(251,191,36,.7);line-height:1">'+(remDue?'Reminder · Due now':'Reminder')+'</span>'+
-          '<span style="font-size:12px;font-weight:800;color:'+(remDue?'#fcd34d':'#fbbf24')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">'+remLabel+(remDue?'':' <span style="font-weight:700;color:rgba(251,191,36,.55)">· '+remTime+'</span>')+'</span>'+
+          '<span style="font-size:13px;font-weight:800;color:'+(remDue?'#fcd34d':'#fbbf24')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">'+remLabel+(remDue?'':' <span style="font-weight:700;color:rgba(251,191,36,.55)">· '+remTime+'</span>')+'</span>'+
         '</div>'+
       '</div>'+
-      '<button onclick="event.stopPropagation();clearReminder('+c.row+')" style="padding:5px 11px;border-radius:8px;background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.4);color:#fcd34d;font-size:11px;font-weight:800;flex-shrink:0;touch-action:manipulation;line-height:1">✕ Dismiss</button>'+
+      '<button onclick="event.stopPropagation();clearReminder('+c.row+')" style="padding:6px 12px;border-radius:8px;background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.4);color:#fcd34d;font-size:11px;font-weight:800;flex-shrink:0;touch-action:manipulation;line-height:1">✕ Dismiss</button>'+
     '</div>'
   ):'';
   const htmlTags=nonWaitTags.map(function(t){return'<span class="tag-pill" style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);color:#a78bfa'+(isOnWait?';opacity:.4':'')+'">'+ t+'</span>';}).join('');
-  const htmlSetRem=isOnReminder?'':'<button onclick="openReminderPicker('+c.row+')" class="cb-pill set" style="display:inline-flex;align-items:center;gap:5px">🔔 Set reminder</button>';
+  const htmlSetRem=isOnReminder?'':'<button onclick="openReminderPicker('+c.row+')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(245,158,11,.08);border:1.5px solid rgba(245,158,11,.35);color:#fbbf24;white-space:nowrap;touch-action:manipulation">🔔 Reminder</button>';
   const htmlSmsBtn=ph?('<button class="btn-sms" onclick="openSMSPicker('+idx+')">💬 Text</button>'):'<button class="btn-sms off" style="cursor:not-allowed">💬 Text</button>';
   const htmlOffersBlock=(function(){if(!c.approvals)return'';const lines=c.approvals.split("\n").map(function(line){const l=line.trim();if(!l||l.startsWith("http"))return"";return'<button onclick="copySingleOffer('+idx+',this.dataset.offer)" data-offer="'+l.replace(/"/g,"&quot;")+'" style="width:100%;text-align:left;padding:8px 10px;margin-bottom:5px;background:rgba(255,255,255,.04);border:1px solid rgba(45,37,80,.6);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;touch-action:manipulation;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>'+l+'</span><span style="color:var(--sub);font-size:11px;flex-shrink:0">copy</span></button>';}).join("");return'<div style="border-top:1px solid rgba(45,37,80,.6);padding:10px 12px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">📋 All Offers</div><button onclick="copyAllOffers('+idx+')" style="padding:5px 12px;border-radius:16px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.35);color:var(--gold);font-size:11px;font-weight:800;touch-action:manipulation">Copy all</button></div>'+lines+'</div>';}());
 
   wrap.innerHTML=
-    '<div class="lead-card" style="border:1.5px solid '+accentBorder+';overflow:hidden'+(isOnReminder&&remDue?';box-shadow:0 0 0 1px rgba(245,158,11,.4),0 0 24px rgba(245,158,11,.18)':'')+'">'
-    +'<div style="height:3px;background:'+accentColor+'"></div>'
-    +htmlRemStrip
+    htmlRemStrip
+    +'<div class="lead-card" style="border:1.5px solid '+accentBorder+';overflow:hidden'+(isOnReminder&&remDue?';box-shadow:0 0 0 1px rgba(245,158,11,.4),0 0 24px rgba(245,158,11,.18)':'')+'">'
+    +'<div onclick="openStatusPicker('+idx+')" style="background:'+(ss?ss.bg.replace(/,[\d.]+\)$/,",.55)"):'rgba(255,255,255,.05)')+';border-bottom:1px solid '+accentBorder+';padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;touch-action:manipulation'+(isOnWait?';opacity:.5;filter:grayscale(.4)':'')+'">'
+      +'<div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">'
+        +'<span style="width:8px;height:8px;border-radius:50%;background:'+accentColor+';flex-shrink:0;box-shadow:0 0 8px '+accentColor+'"></span>'
+        +'<span style="font-size:13px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:'+(ss?ss.color:'rgba(255,255,255,.6)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(rawLabel||"Set status")+'</span>'
+      +'</div>'
+      +'<span style="font-size:10px;color:rgba(255,255,255,.35);flex-shrink:0">tap to change</span>'
+    +'</div>'
     +'<div class="card-header" style="'+headerBg+'">'
       +'<div class="card-header-top">'
         +'<div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex-shrink:0">'
@@ -1216,7 +1228,6 @@ function renderCard(){
       +'</div>'
       +htmlWaitBanner
       +'<div class="card-meta-row">'
-        +'<span class="status-pill" onclick="openStatusPicker('+idx+')" style="background:'+badgeBg+';border:1.5px solid '+badgeBdr+';color:'+badgeClr+(isOnWait?';opacity:.4;filter:grayscale(.5)':'')+'">&bull; '+(rawLabel||"Set status")+'</span>'
         +htmlTags+buildCbHtml(c)+htmlSetRem
       +'</div>'
       +'<div style="padding:0 16px 12px;display:flex;align-items:flex-start;gap:8px">'
@@ -2078,20 +2089,24 @@ function openReminderPicker(row){
   const ov=$("cb-ov");
   const stored=localStorage.getItem(REM_KEY(row));
   const cur=stored?JSON.parse(stored):null;
-  const existingLabel=cur?.label||"";
+  const existingLabel=cur?cur.label||"":"";
+  const removeBlock=cur
+    ? `<div style="margin-top:16px;border-top:1px solid rgba(45,37,80,.5);padding-top:12px"><button onclick="clearReminder(${row});document.getElementById('cb-ov').style.display='none'" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove reminder</button></div>`
+    : "";
 
   ov.innerHTML=`<div style="width:100%;background:linear-gradient(180deg,#1a1040,#130e2e);border-radius:24px 24px 0 0;border-top:2px solid rgba(245,158,11,.5);padding:0 0 50px;max-height:92vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.16,1,.3,1) both">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;border-bottom:1px solid rgba(45,37,80,.5)">
       <div style="font-size:18px;font-weight:900;color:#fff">🔔 Reminder</div>
-      <button onclick="$('cb-ov').style.display='none'" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:15px;display:flex;align-items:center;justify-content:center">✕</button>
+      <button onclick="document.getElementById('cb-ov').style.display='none'" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:15px;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <div style="padding:20px 16px 0">
       <!-- STEP 1: NOTE -->
       <div id="rem-step1">
         <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:10px">What do you need to do?</div>
         <input id="rem-label-input" value="${existingLabel}" placeholder="e.g. Call back, Send docs, Follow up…"
+          autocomplete="off" autocapitalize="sentences"
           style="width:100%;padding:16px 14px;background:rgba(255,255,255,.07);border:2px solid rgba(245,158,11,.5);border-radius:14px;color:#fff;font-size:16px;font-weight:600;box-sizing:border-box;outline:none"
-          onfocus="this.style.borderColor='#f59e0b'" onblur="this.style.borderColor='rgba(245,158,11,.4)'"/>
+          onfocus="this.style.borderColor='#f59e0b'" onblur="this.style.borderColor='rgba(245,158,11,.5)'"/>
         <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:8px;text-align:center">Press Enter or tap Next to pick a time</div>
         <button onclick="remShowTimeStep(${row})" style="width:100%;margin-top:14px;padding:14px;border-radius:14px;background:rgba(245,158,11,.15);border:1.5px solid rgba(245,158,11,.4);color:#f59e0b;font-size:15px;font-weight:800;touch-action:manipulation">Next →</button>
       </div>
@@ -2109,25 +2124,36 @@ function openReminderPicker(row){
         <button onclick="setReminder(${row},0,Date.now())" style="width:100%;padding:13px;border-radius:12px;background:rgba(52,211,153,.1);border:1.5px solid rgba(52,211,153,.3);color:#34d399;font-size:14px;font-weight:800;margin-bottom:10px;touch-action:manipulation">✓ Save without time</button>
         <button onclick="remShowStep1()" style="width:100%;padding:10px;border-radius:12px;background:none;border:none;color:rgba(255,255,255,.3);font-size:13px;touch-action:manipulation">← Edit note</button>
       </div>
-      "+(cur?'<div style="margin-top:16px;border-top:1px solid rgba(45,37,80,.5);padding-top:12px"><button onclick="clearReminder('+row+');$(\\"cb-ov\\").style.display=\\"none\\"" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove reminder</button></div>':"")+"
+      ${removeBlock}
     </div>
   </div>`;
 
   ov.style.display="flex";
 
-  // Wire Enter key on note input to advance to step 2
-  setTimeout(function(){
-    const inp=document.getElementById("rem-label-input");
-    if(inp){
-      inp.focus();
-      if(existingLabel)inp.select();
-      inp.addEventListener("keydown",function(e){
-        if(e.key==="Enter"){e.preventDefault();remShowTimeStep(row);}
-      });
+  // Open keyboard immediately. iOS Safari requires .focus() to happen
+  // synchronously within the user-gesture stack that called this function.
+  // We do it on the next frame (after innerHTML paints) but BEFORE any setTimeout.
+  const inp=document.getElementById("rem-label-input");
+  if(inp){
+    // Synchronous focus inside the same tap gesture — this is what makes the keyboard open on iOS
+    inp.focus();
+    if(existingLabel){
+      try{inp.setSelectionRange(0,existingLabel.length);}catch{}
     }
-    // If editing existing, jump straight to step 2
-    if(existingLabel)remShowTimeStep(row,true);
-  },80);
+    // Enter advances to time step (and blurs to close keyboard for picker)
+    inp.addEventListener("keydown",function(e){
+      if(e.key==="Enter"){
+        e.preventDefault();
+        inp.blur(); // close keyboard so user can see/tap the time presets cleanly
+        remShowTimeStep(row);
+      }
+    });
+  }
+  // If editing existing reminder, jump straight to time step
+  if(existingLabel){
+    if(inp)inp.blur();
+    remShowTimeStep(row,true);
+  }
 }
 
 function remShowStep1(){
@@ -2146,11 +2172,12 @@ function remShowTimeStep(row,skipEdit){
     if(inp){inp.style.borderColor="#f87171";inp.focus();inp.placeholder="Type what you need to do first…";}
     return;
   }
+  // Close keyboard before showing time picker so the time options are clearly visible
+  if(inp&&document.activeElement===inp)inp.blur();
   const s1=document.getElementById("rem-step1");
   const s2=document.getElementById("rem-step2");
   const lbl=document.getElementById("rem-step2-label");
-  if(s1&&!skipEdit)s1.style.display="none";
-  if(s1&&skipEdit)s1.style.display="none";
+  if(s1)s1.style.display="none";
   if(s2)s2.style.display="block";
   if(lbl)lbl.textContent="🔔 "+label;
   // Set datetime default to next round hour
