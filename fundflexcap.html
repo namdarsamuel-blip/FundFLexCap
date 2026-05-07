@@ -422,11 +422,14 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
     <div class="all-sheet-head">
       <div class="sheet-head" style="position:relative;padding:10px 0 12px">
         <div><div class="sheet-title">All Leads</div><div class="sheet-subtitle" id="sh-count"></div></div>
-        <button class="sheet-x" onclick="closeAll()">✕</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button onclick="openHistoryPanel()" style="padding:7px 13px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.32);color:#a78bfa;touch-action:manipulation;white-space:nowrap">↺ History</button>
+          <button class="sheet-x" onclick="closeAll()">✕</button>
+        </div>
       </div>
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input class="search-input" id="search-box" placeholder="Search name, company, phone…" oninput="filterList(this.value)"/>
+        <input class="search-input" id="search-box" placeholder="Search name, company, phone…" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" oninput="filterList(this.value)"/>
       </div>
       <div id="status-filter-bar" style="display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
     </div>
@@ -476,7 +479,6 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
     </div>
   </div>
 </div>
-<div id="undo-bar"><span id="undo-msg">Change saved</span><button onclick="doUndo()">Undo</button></div>
 <div id="toast"></div>
 
 <script>
@@ -590,8 +592,18 @@ function buildSwitcher(){
 function clearCb(row){
   // Blur any focused inputs first
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
-  localStorage.removeItem(CB_KEY(row));
   const c=contacts.find(x=>x.row===row);
+  const beforeWait=c?(c.waitUntil||""):"";
+  const beforeStored=localStorage.getItem(CB_KEY(row))||"";
+  // Only log if there was actually a wait to clear
+  if(c&&beforeWait){
+    logChange("wait",c,"Wait timer cleared",{
+      kind:"wait",
+      before:{waitUntil:beforeWait,stored:beforeStored},
+      after:{waitUntil:"",stored:""}
+    });
+  }
+  localStorage.removeItem(CB_KEY(row));
   if(c){c.waitUntil="";saveC();}
   // Clear col K on sheet
   const s=currentSheet();
@@ -618,7 +630,13 @@ function clearHistory(){localStorage.removeItem(HIST_KEY());closeHistory();toast
 
 function clearHoldSync(){clearTimeout(_holdTimer);_holdTimer=null;}
 
-function closeAll(){$("all-ov").classList.remove("open");}
+function closeAll(){
+  const ov=$("all-ov");
+  ov.classList.remove("open");
+  // Reset the dynamically-set height so next open gets fresh layout
+  const sheet=ov.querySelector(".sheet");
+  if(sheet){sheet.style.maxHeight="";sheet.style.height="";}
+}
 
 function closeEdit(){
   if(editIdx!==null){
@@ -635,13 +653,15 @@ function closeEdit(){
         const newLabel=(newStatus||"").replace(/^[\d\.]+\.?\s*/,"").trim();
         details.push(`Status: ${oldLabel} → ${newLabel}`);
       }
-      // Store undo snapshot before overwriting
-      undoSnapshot={idx:editIdx,notes:c.notes,leadStatus:c.leadStatus};
-      logChange("notes",c,details.join(" · "));
+      const beforeNotes=c.notes||"";
+      const beforeStatus=c.leadStatus||"";
+      logChange("notes",c,details.join(" · "),{
+        kind:"fields",
+        fields:{notes:{before:beforeNotes,after:newNotes},leadStatus:{before:beforeStatus,after:newStatus}}
+      });
       contacts[editIdx].notes=newNotes;
       contacts[editIdx].leadStatus=newStatus;
       saveC();pushFull(c.row,{notes:newNotes,leadStatus:newStatus},c);
-      showUndo("Saved — tap to undo");
       renderCard();
     }
   }
@@ -807,15 +827,15 @@ function saveTagsForLead(){
   const oldTagsStr=c.tags||"";
   if(newTagsStr===oldTagsStr){closeTagPicker();return;}
   // Optimistic update + sync
-  logChange("tags",c,'Tags: "'+(oldTagsStr||"none")+'" → "'+(newTagsStr||"none")+'"');
-  undoSnapshot={idx:_tpIdx,tags:c.tags};
+  logChange("tags",c,'Tags: "'+(oldTagsStr||"none")+'" → "'+(newTagsStr||"none")+'"',{
+    kind:"fields",fields:{tags:{before:oldTagsStr,after:newTagsStr}}
+  });
   c.tags=newTagsStr;
   saveC();
   const s=currentSheet();
   fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
     body:JSON.stringify({action:"updateCell",sheet:s.tab,row:c.row,field:"tags",value:newTagsStr})
   }).catch(function(){});
-  showUndo("Tags updated");
   renderCard();
   closeTagPicker();
 }
@@ -825,6 +845,178 @@ function closeTagPicker(){
   if(ov)ov.remove();
   _tpIdx=null;
   _tpSelected=new Set();
+}
+
+// ── HISTORY PANEL ────────────────────────────────────────────────────────────
+// Session-only log of every revertable change made on the phone.
+// Cleared on page close. Accessed via menu (≡) → History.
+function openHistoryPanel(){
+  let ov=document.getElementById("history-panel-ov");
+  if(!ov){
+    ov=document.createElement("div");
+    ov.id="history-panel-ov";
+    ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1100;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(20px)";
+    ov.onclick=function(e){if(e.target===ov)closeHistoryPanel();};
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML='<div style="width:100%;max-width:580px;background:linear-gradient(180deg,#1a1040,#0f0a2e);border-radius:24px 24px 0 0;border-top:2px solid rgba(124,58,237,.5);padding:0 0 50px;max-height:94vh;display:flex;flex-direction:column;animation:slideUp .3s cubic-bezier(.16,1,.3,1) both">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;border-bottom:1px solid rgba(45,37,80,.5);flex-shrink:0">'+
+      '<div><div style="font-size:18px;font-weight:900;color:#fff">↺ History</div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px">This session only · '+_sessionHistory.length+' change'+(_sessionHistory.length===1?'':'s')+'</div></div>'+
+      '<button onclick="closeHistoryPanel()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:15px;display:flex;align-items:center;justify-content:center">✕</button>'+
+    '</div>'+
+    '<div id="history-panel-list" style="flex:1;overflow-y:auto;padding:8px 14px 0;-webkit-overflow-scrolling:touch"></div>'+
+  '</div>';
+  renderHistoryPanel();
+}
+
+function renderHistoryPanel(){
+  const list=document.getElementById("history-panel-list");
+  if(!list)return;
+  if(!_sessionHistory.length){
+    list.innerHTML='<div style="padding:40px 20px;text-align:center;color:rgba(255,255,255,.35);font-size:13px;line-height:1.6">No changes yet this session.<br><span style="font-size:11px;opacity:.7">Edit a lead and your changes will show here.</span></div>';
+    return;
+  }
+  list.innerHTML=_sessionHistory.map(function(e){return historyItemHtml(e);}).join("");
+}
+
+function historyItemHtml(e){
+  const ts=new Date(e.ts);
+  const timeStr=ts.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+  const typeIcon={
+    notes:"📝",status:"●",tags:"🏷",info:"✏",delete:"🗑",
+    wait:"⏸",reminder:"🔔",sms:"💬"
+  }[e.type]||"·";
+  const canRevert=!!e.revert&&!e.reverted;
+  const revertedBadge=e.reverted?'<span style="display:inline-block;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.4);background:rgba(255,255,255,.08);padding:2px 8px;border-radius:10px;margin-left:6px">reverted</span>':'';
+  const revertBtn=canRevert
+    ? '<button onclick="revertHistoryEntry('+e.id+')" style="padding:6px 12px;border-radius:10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;font-size:11px;font-weight:800;flex-shrink:0;touch-action:manipulation;white-space:nowrap">↩ Revert</button>'
+    : '';
+  return '<div style="display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid rgba(45,37,80,.4)">'+
+    '<span style="font-size:14px;width:22px;text-align:center;flex-shrink:0;margin-top:1px">'+typeIcon+'</span>'+
+    '<div style="flex:1;min-width:0">'+
+      '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:3px">'+
+        '<span style="font-size:13px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">'+(e.leadName||"—")+'</span>'+
+        '<span style="font-size:10px;color:rgba(255,255,255,.4);flex-shrink:0">'+timeStr+'</span>'+
+      '</div>'+
+      '<div style="font-size:12px;color:rgba(255,255,255,.65);line-height:1.4;word-break:break-word">'+escapeHTML(e.detail||"")+revertedBadge+'</div>'+
+    '</div>'+
+    revertBtn+
+  '</div>';
+}
+
+function escapeHTML(s){return String(s||"").replace(/[&<>"']/g,function(ch){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch];});}
+
+function closeHistoryPanel(){
+  const ov=document.getElementById("history-panel-ov");
+  if(ov)ov.remove();
+}
+
+// Revert a specific history entry. Writes the captured "before" values back to the contact + sheet.
+// Marks the entry as reverted so it can't be hit twice. Adds a NEW history entry for the revert itself
+// (so reverts can be reverted).
+function revertHistoryEntry(entryId){
+  const e=_sessionHistory.find(function(x){return x.id===entryId;});
+  if(!e||e.reverted||!e.revert)return;
+  const c=contacts.find(function(x){return x.row===e.leadRow;});
+  const r=e.revert;
+
+  if(r.kind==="fields"&&c){
+    // Restore each field's "before" value. Build the sheet update payload.
+    const updates={};
+    Object.keys(r.fields).forEach(function(k){
+      c[k]=r.fields[k].before;
+      updates[k]=r.fields[k].before;
+    });
+    saveC();
+    // Push to sheet — pushFull / pushInfoFull handle their own retries
+    const s=currentSheet();
+    fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({
+      action:"updateFull",sheet:s.tab,row:c.row,...updates
+    })}).catch(function(){});
+  } else if(r.kind==="wait"&&c){
+    c.waitUntil=r.before.waitUntil||"";
+    if(r.before.stored)localStorage.setItem(CB_KEY(c.row),r.before.stored);
+    else localStorage.removeItem(CB_KEY(c.row));
+    saveC();
+    const s=currentSheet();
+    if(c.waitUntil){
+      // Reconstruct setWait call from the stored data
+      try{
+        const data=JSON.parse(r.before.stored);
+        const dueDate=new Date(data.due);
+        const dueStr=dueDate.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})+" at "+dueDate.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+        fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({
+          action:"setWait",sheet:s.tab,row:c.row,label:data.label,dueISO:dueDate.toISOString(),dueStr,waitStr:c.waitUntil
+        })});
+      }catch{}
+    } else {
+      fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({
+        action:"clearWait",sheet:s.tab,row:c.row
+      })});
+    }
+    startTick();
+  } else if(r.kind==="reminder"&&c){
+    c.reminder=r.before.reminder||"";
+    if(r.before.stored)localStorage.setItem(REM_KEY(c.row),r.before.stored);
+    else localStorage.removeItem(REM_KEY(c.row));
+    saveC();
+    const s=currentSheet();
+    fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({
+      action:"updateCell",sheet:s.tab,row:c.row,field:"reminder",value:c.reminder
+    })});
+  } else if(r.kind==="delete"){
+    // Restore the contact at the bottom (sheet) and into our local array
+    const restored={...r.contact};
+    const wasIdx=typeof r.wasIdx==="number"?r.wasIdx:contacts.length;
+    contacts.splice(Math.min(wasIdx,contacts.length),0,restored);
+    idx=Math.min(wasIdx,contacts.length-1);
+    saveC();
+    const s=currentSheet();
+    fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({
+      action:"restoreRow",sheet:s.tab,contact:restored
+    })});
+  }
+
+  e.reverted=true;
+  toast("↩ Reverted: "+(e.detail||""));
+  renderAll();
+  // Refresh views
+  renderHistoryPanel();
+  if(c){
+    const feed=document.getElementById("lead-activity-feed");
+    if(feed)renderLeadActivity(c.row);
+  }
+}
+
+// ── PER-LEAD ACTIVITY FEED ────────────────────────────────────────────────
+// Renders inside the card, below "Save to iPhone Contacts". Shows last 5
+// changes for THIS lead from the session history.
+function renderLeadActivity(row){
+  const el=document.getElementById("lead-activity-feed");
+  if(!el)return;
+  const entries=_sessionHistory.filter(function(e){return e.leadRow===row;}).slice(0,5);
+  if(!entries.length){
+    el.innerHTML='<div style="padding:14px 16px;color:rgba(255,255,255,.3);font-size:11px;text-align:center;font-style:italic">No recent activity for this lead</div>';
+    return;
+  }
+  el.innerHTML=entries.map(function(e){
+    const ts=new Date(e.ts);
+    const timeStr=ts.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+    const typeIcon={notes:"📝",status:"●",tags:"🏷",info:"✏",delete:"🗑",wait:"⏸",reminder:"🔔",sms:"💬"}[e.type]||"·";
+    const canRevert=!!e.revert&&!e.reverted;
+    const reverted=e.reverted?'<span style="font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-left:6px">· reverted</span>':'';
+    const revertBtn=canRevert
+      ? '<button onclick="revertHistoryEntry('+e.id+')" style="padding:4px 10px;border-radius:8px;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);color:#c4b5fd;font-size:10px;font-weight:800;flex-shrink:0;touch-action:manipulation;white-space:nowrap">↩</button>'
+      : '';
+    return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-top:1px solid rgba(45,37,80,.3)">'+
+      '<span style="font-size:11px;width:16px;flex-shrink:0;margin-top:1px">'+typeIcon+'</span>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:11px;color:rgba(255,255,255,.7);line-height:1.4;word-break:break-word">'+escapeHTML(e.detail||"")+reverted+'</div>'+
+        '<div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:2px">'+timeStr+'</div>'+
+      '</div>'+
+      revertBtn+
+    '</div>';
+  }).join("");
 }
 
 function confirmDelete(){
@@ -841,21 +1033,14 @@ function currentIdxKey(){return currentSheet().cache+"_i";}
 function deleteContact(){
   if(_ieIdx===null)return;const c=contacts[_ieIdx];
   if(!confirm(`Delete ${c.name||"this contact"}?`))return;
+  const snapshot={...c}; // full copy for revert
   contacts.splice(_ieIdx,1);idx=Math.max(0,Math.min(idx,contacts.length-1));saveC();closeInfoEdit();renderAll();
   try{const s=currentSheet();fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"deleteRow",sheet:s.tab,row:c.row})});}catch{}
-  logChange("delete",c,"Deleted row "+c.row);toast("🗑 Contact deleted");
+  logChange("delete",c,"Deleted "+(c.name||"contact"),{kind:"delete",contact:snapshot});
+  toast("🗑 Contact deleted");
 }
 
-function doUndo(){
-  if(_deleteUndo){
-    const{contact,wasIdx}=_deleteUndo;_deleteUndo=null;if(_deleteTimer){clearTimeout(_deleteTimer);_deleteTimer=null;}
-    contacts.splice(Math.min(wasIdx,contacts.length),0,contact);idx=wasIdx;saveC();renderAll();
-    $("undo-bar").classList.remove("show");toast("↩ Restored");
-    const s=currentSheet();fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"restoreRow",sheet:s.tab,contact})});
-    return;
-  }
-  if(!undoSnapshot)return;const{idx:ri,...fields}=undoSnapshot;Object.assign(contacts[ri],fields);saveC();pushFull(contacts[ri].row,fields);undoSnapshot=null;$("undo-bar").classList.remove("show");renderCard();toast("↩ Undone");
-}
+// (doUndo removed — replaced by per-entry revert via History panel)
 
 function editPickStat(btn){
   editSelectedStatus=btn.dataset.val;
@@ -865,12 +1050,11 @@ function editPickStat(btn){
 function executeDelete(){
   if(!_deleteTarget)return;$("del-ov").style.display="none";
   const{idx:ri,contact:c}=_deleteTarget;_deleteTarget=null;
-  _deleteUndo={contact:{...c},wasIdx:ri};
+  const snapshot={...c};
   const s=currentSheet();fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"deleteRow",sheet:s.tab,row:c.row})});
   contacts.splice(ri,1);idx=Math.max(0,Math.min(idx,contacts.length-1));saveC();renderAll();
-  logChange("delete",c,"Deleted row "+c.row);
-  $("undo-msg").textContent=`🗑 ${c.name||"Contact"} deleted`;$("undo-bar").classList.add("show");
-  if(_deleteTimer)clearTimeout(_deleteTimer);_deleteTimer=setTimeout(()=>{$("undo-bar").classList.remove("show");_deleteUndo=null;},30000);
+  logChange("delete",c,"Deleted "+(c.name||"contact"),{kind:"delete",contact:snapshot,wasIdx:ri});
+  toast("🗑 "+(c.name||"Contact")+" deleted — see History to undo");
 }
 
 function filterList(q){
@@ -944,19 +1128,60 @@ function jumpTo(ri){
 
 function loadC(){try{const d=localStorage.getItem(currentCache()),i=localStorage.getItem(currentIdxKey());if(d){contacts=JSON.parse(d);idx=Math.min(parseInt(i)||0,contacts.length-1);return true;}}catch{}return false;}
 
-function logChange(type,contact,detail){
-  const entry={ts:Date.now(),type,name:contact.name||"—",company:contact.company||"",row:contact.row,detail};
-  try{const raw=localStorage.getItem(HIST_KEY())||"[]";const arr=JSON.parse(raw);arr.unshift(entry);if(arr.length>100)arr.length=100;localStorage.setItem(HIST_KEY(),JSON.stringify(arr));}catch{}
+// ── SESSION HISTORY ──────────────────────────────────────────────────────────
+// Cleared when the page closes. Tracks every phone-side mutation with enough
+// data to revert. NOT a popup undo bar — accessed only via menu → History
+// or per-lead activity feed. Conflict detection isn't done — reverts always
+// write the captured "before" value back.
+let _sessionHistory=[];
+let _historyId=0;
+
+// Push a new history entry. revertData is what we need to undo:
+//   {field:"notes", before:"...", after:"..."} — for cell updates
+//   {kind:"delete", contact:{...}} — restore a deleted row
+//   {kind:"wait", before:"<col K str>", after:"<col K str>"} — wait timer
+//   {kind:"reminder", before:"<col M str>", after:"<col M str>"} — reminder
+//   {kind:"info", changes:[{field,before,after},...]} — multi-field info edit
+function pushHistory(type, contact, detail, revertData){
+  const entry={
+    id:++_historyId,
+    ts:Date.now(),
+    type,
+    leadRow:contact.row,
+    leadName:contact.name||"—",
+    leadCompany:contact.company||"",
+    detail,
+    revert:revertData||null,
+    reverted:false
+  };
+  _sessionHistory.unshift(entry); // newest first
+  // Refresh open history view if visible
+  const histPanel=document.getElementById("history-panel-list");
+  if(histPanel)renderHistoryPanel();
+  // Refresh per-lead activity if currently rendered card matches
+  if(contacts[idx]&&contacts[idx].row===contact.row){
+    const feed=document.getElementById("lead-activity-feed");
+    if(feed)renderLeadActivity(contact.row);
+  }
+  return entry;
+}
+
+// Backwards-compatible: older code calls logChange(type, contact, detail).
+// We keep its remote-logging behavior (so the master log sheet still gets entries),
+// and route to pushHistory if revertData is supplied.
+function logChange(type,contact,detail,revertData){
+  // Local session entry (revertable if revertData provided)
+  pushHistory(type,contact,detail,revertData);
+  // Remote master log (existing behavior — fire-and-forget)
   try{
     const s=currentSheet();
     fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({
       action:"logChange",sheet:s.tab,
-      ts:new Date(entry.ts).toLocaleString(),
+      ts:new Date().toLocaleString(),
       name:contact.name||"",
       company:contact.company||"",
-      type:entry.type,
-      detail:entry.detail,
-      // Full contact snapshot for complete history
+      type:type,
+      detail:detail,
       phone:contact.phone||"",
       email:contact.email||"",
       leadStatus:contact.leadStatus||"",
@@ -968,11 +1193,11 @@ function logChange(type,contact,detail){
       dlVc:contact.dlVc||"",
       approvals:(contact.approvals||"").slice(0,300),
       industry:contact.industry||"",
-      federalTax:contact.federalTax||"",
-      businessDate:contact.businessDate||"",
+      bizDate:contact.bizDate||"",
       dob:contact.dob||"",
       social:contact.social||"",
-      status:contact.status||""
+      federalTax:contact.federalTax||"",
+      reminder:contact.reminder||""
     })});
   }catch{}
 }
@@ -1055,6 +1280,39 @@ function openAll(){
   }
   filterList("");
   $("all-ov").classList.add("open");
+  // Auto-focus search box so keyboard opens immediately. iOS Safari requires
+  // .focus() to fire synchronously within the user-gesture stack, so we do it
+  // here directly (not via setTimeout).
+  const sb=$("search-box");
+  if(sb){
+    sb.value="";
+    sb.focus();
+  }
+  // Resize the sheet to fit above the keyboard. iOS doesn't shrink fixed elements
+  // when the keyboard opens, so we listen to visualViewport changes and set
+  // max-height to the actual visible area. This keeps every search result tappable
+  // even with the keyboard still up.
+  startKeyboardResize();
+}
+
+let _keyboardResizeBound=false;
+function startKeyboardResize(){
+  if(!window.visualViewport)return;
+  const apply=function(){
+    const ov=document.getElementById("all-ov");
+    if(!ov||!ov.classList.contains("open"))return;
+    const sheet=ov.querySelector(".sheet");
+    if(!sheet)return;
+    // Use the visual viewport's actual height — iOS subtracts the keyboard from this
+    sheet.style.maxHeight=window.visualViewport.height+"px";
+    sheet.style.height=window.visualViewport.height+"px";
+  };
+  apply();
+  if(!_keyboardResizeBound){
+    window.visualViewport.addEventListener("resize",apply);
+    window.visualViewport.addEventListener("scroll",apply);
+    _keyboardResizeBound=true;
+  }
 }
 
 function openCallbackPicker(row){
@@ -1240,16 +1498,21 @@ function pickStatus(btn){
   if(_spIdx===null)return;const c=contacts[_spIdx];const newStatus=btn.dataset.val;
   const oldLabel=(c.leadStatus||"").replace(/^[\d\.]+\.?\s*/,"").trim()||"None";
   const newLabel=newStatus.replace(/^[\d\.]+\.?\s*/,"").trim();
-  logChange("status",c,`Status: ${oldLabel} → ${newLabel}`);
-  undoSnapshot={idx:_spIdx,leadStatus:c.leadStatus,tags:c.tags};
+  const beforeStatus=c.leadStatus||"";
+  const beforeTags=c.tags||"";
   contacts[_spIdx].leadStatus=newStatus;
+  let afterTags=beforeTags;
   if(newLabel.toLowerCase()==="absent"){
     const tags=(c.tags||"").split(",").map(t=>t.trim()).filter(Boolean);
-    if(!tags.some(t=>t.toLowerCase()==="wait")){tags.unshift("Wait");contacts[_spIdx].tags=tags.join(", ");}
+    if(!tags.some(t=>t.toLowerCase()==="wait")){tags.unshift("Wait");contacts[_spIdx].tags=tags.join(", ");afterTags=contacts[_spIdx].tags;}
     pushFull(c.row,{leadStatus:newStatus,tags:contacts[_spIdx].tags},c);
     setTimeout(()=>openCallbackPicker(c.row),350);
   }else{pushFull(c.row,{leadStatus:newStatus},c);}
-  saveC();closeStatusPicker();renderCard();showUndo("Status updated — tap to undo");
+  // Build revert data: status always changes, tags only sometimes
+  const revertFields={leadStatus:{before:beforeStatus,after:newStatus}};
+  if(afterTags!==beforeTags)revertFields.tags={before:beforeTags,after:afterTags};
+  logChange("status",c,`Status: ${oldLabel} → ${newLabel}`,{kind:"fields",fields:revertFields});
+  saveC();closeStatusPicker();renderCard();
 }
 
 // Resolve the actual current row for a contact by matching name+phone on the sheet.
@@ -1474,6 +1737,14 @@ function renderCard(){
     +'<div style="padding:8px 12px 16px">'
       +'<button onclick="saveToContacts('+idx+')" style="width:100%;padding:10px;border-radius:10px;background:none;border:1px solid rgba(59,139,255,.2);color:rgba(96,165,250,.6);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;touch-action:manipulation"><span style="font-size:13px">👤</span> Save to iPhone Contacts</button>'
     +'</div>'
+    // ── PER-LEAD ACTIVITY FEED ──
+    +'<div style="padding:0 14px 16px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+        +'<span style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.35)">Recent Activity</span>'
+        +'<span style="font-size:9px;color:rgba(255,255,255,.25)">This session</span>'
+      +'</div>'
+      +'<div id="lead-activity-feed" style="background:rgba(255,255,255,.02);border:1px solid rgba(45,37,80,.4);border-radius:10px;padding:0 12px"></div>'
+    +'</div>'
     +'</div>';
   setTimeout(()=>{
     const nt=$("notes-tap");if(nt&&!isOnWait)nt.onclick=()=>openEdit(idx);
@@ -1499,6 +1770,8 @@ function renderCard(){
       });
       sj.addEventListener("keydown",(e)=>{if(e.key==="Enter"&&!e.shiftKey)sj.blur();});
     }
+    // Render per-lead activity feed
+    if(contacts[idx])renderLeadActivity(contacts[idx].row);
   },0);
   updateNavCount();
   }catch(err){
@@ -1606,33 +1879,43 @@ function saveEdit(){
   if(editIdx===null)return;const c=contacts[editIdx];
   const newNotes=getNoteBlocksValue();const newStatus=editSelectedStatus||c.leadStatus;
   const oldLabel=(c.leadStatus||"").replace(/^[\d\.]+\.?\s*/,"").trim();const newLabel=(newStatus||"").replace(/^[\d\.]+\.?\s*/,"").trim();
-  const details=[];if(newNotes!==(c.notes||""))details.push("Notes updated");if(newLabel!==oldLabel)details.push(`Status: ${oldLabel} → ${newLabel}`);
-  if(details.length)logChange("notes",c,details.join(" · "));
-  undoSnapshot={idx:editIdx,notes:c.notes,leadStatus:c.leadStatus};
+  const details=[];
+  const revertFields={};
+  if(newNotes!==(c.notes||"")){details.push("Notes updated");revertFields.notes={before:c.notes||"",after:newNotes};}
+  if(newLabel!==oldLabel){details.push(`Status: ${oldLabel} → ${newLabel}`);revertFields.leadStatus={before:c.leadStatus||"",after:newStatus};}
+  if(details.length)logChange("notes",c,details.join(" · "),{kind:"fields",fields:revertFields});
   contacts[editIdx].notes=newNotes;contacts[editIdx].leadStatus=newStatus;
   saveC();pushFull(c.row,{notes:newNotes,leadStatus:newStatus},c);
   $("edit-ov").classList.remove("open");editIdx=null;
-  renderCard();showUndo("Saved");
+  renderCard();
 }
 
 function saveInfoEdit(){
   if(_ieIdx===null)return;const c=contacts[_ieIdx];
-  const fields=[["Name",c.name,$("ie-name").value],["Phone",c.phone,$("ie-phone").value],["Email",c.email,$("ie-email").value],["Credit",c.credit,$("ie-credit").value]];
-  const changes=fields.filter(([,o,n])=>(o||"").trim()!==(n||"").trim()).map(([l])=>l+" updated");
-  if(changes.length)logChange("info",c,changes.join(" · "));
-  undoSnapshot={idx:_ieIdx,name:c.name,company:c.company,phone:c.phone,email:c.email,credit:c.credit,revenue:c.revenue,dlVc:c.dlVc,federalTax:c.federalTax,businessDate:c.businessDate,industry:c.industry,wants:c.wants,dob:c.dob,social:c.social,tags:c.tags,approvals:c.approvals};
-  const f=contacts[_ieIdx];
-  f.name=$("ie-name").value;f.company=$("ie-company").value;f.phone=$("ie-phone").value;f.email=$("ie-email").value;
-  f.credit=$("ie-credit").value;f.revenue=$("ie-revenue").value;f.dlVc=$("ie-dlvc").value;f.federalTax=$("ie-federalTax").value;
-  f.businessDate=$("ie-businessDate").value;f.industry=$("ie-industry").value;f.wants=$("ie-wants").value;f.dob=$("ie-dob").value;
-  f.social=$("ie-social").value;f.tags=$("ie-tags").value;f.approvals=$("ie-approvals").value;
+  // Track per-field before/after for granular revert
+  const newVals={
+    name:$("ie-name").value,company:$("ie-company").value,phone:$("ie-phone").value,email:$("ie-email").value,
+    credit:$("ie-credit").value,revenue:$("ie-revenue").value,dlVc:$("ie-dlvc").value,federalTax:$("ie-federalTax").value,
+    businessDate:$("ie-businessDate").value,industry:$("ie-industry").value,wants:$("ie-wants").value,dob:$("ie-dob").value,
+    social:$("ie-social").value,tags:$("ie-tags").value,approvals:$("ie-approvals").value
+  };
+  const labels={name:"Name",phone:"Phone",email:"Email",credit:"Credit",company:"Company",revenue:"Revenue",dlVc:"DL/VC",federalTax:"Federal Tax",businessDate:"Biz Date",industry:"Industry",wants:"Wants",dob:"DOB",social:"Social",tags:"Tags",approvals:"Approvals"};
+  const revertFields={};
+  const changes=[];
+  Object.keys(newVals).forEach(function(k){
+    const oldV=(c[k]||"").trim?(c[k]||"").trim():(c[k]||"");
+    const newV=(newVals[k]||"").trim?(newVals[k]||"").trim():(newVals[k]||"");
+    if(oldV!==newV){revertFields[k]={before:c[k]||"",after:newVals[k]||""};changes.push((labels[k]||k)+" updated");}
+  });
+  if(changes.length)logChange("info",c,changes.join(" · "),{kind:"fields",fields:revertFields});
+  const f=contacts[_ieIdx];Object.assign(f,newVals);
   const oldTags=c.tags||"";const newTags=f.tags;
   const hadWait=oldTags.toLowerCase().split(",").some(t=>t.trim()==="wait");
   const hasWait=newTags.toLowerCase().split(",").some(t=>t.trim()==="wait");
   if(hasWait&&!hadWait)localStorage.setItem("wait_ts_"+currentSheet().cache+"_"+c.row,Date.now());
   if(!hasWait&&hadWait){localStorage.removeItem("wait_ts_"+currentSheet().cache+"_"+c.row);localStorage.removeItem(CB_KEY(c.row));}
   saveC();pushInfoFull(c.row,{name:f.name,company:f.company,phone:f.phone,email:f.email,tags:f.tags,approvals:f.approvals,credit:f.credit,revenue:f.revenue,dlVc:f.dlVc,federalTax:f.federalTax,businessDate:f.businessDate,industry:f.industry,wants:f.wants,dob:f.dob,social:f.social},c);
-  $("info-edit-save-btn").textContent="Saved ✓";showUndo("Info saved");setTimeout(()=>{closeInfoEdit();renderCard();},500);
+  $("info-edit-save-btn").textContent="Saved ✓";setTimeout(()=>{closeInfoEdit();renderCard();},500);
 }
 
 function setCb(row,ms,specificTime){
@@ -1647,24 +1930,34 @@ function setCb(row,ms,specificTime){
 
   const due=specificTime||Date.now()+ms;
   const data={due,label,ms:ms||0};
+  const c=contacts.find(x=>x.row===row);
+  const beforeWait=c?(c.waitUntil||""):"";
+  const beforeStored=localStorage.getItem(CB_KEY(row))||"";
   localStorage.setItem(CB_KEY(row),JSON.stringify(data));
   const dueDate=new Date(due);
   const dueStr=dueDate.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})
     +" at "+dueDate.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
   const waitStr="["+label+"] until "+dueStr;
-  const c=contacts.find(x=>x.row===row);
   if(c){c.waitUntil=waitStr;saveC();}
   const s=currentSheet();
   fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
     body:JSON.stringify({action:"setWait",sheet:s.tab,row,label,dueISO:dueDate.toISOString(),dueStr,waitStr})});
   $("cb-ov").style.display="none";
 
+  // Log it as revertable
+  if(c)logChange("wait",c,"Wait timer set: "+label,{
+    kind:"wait",
+    before:{waitUntil:beforeWait,stored:beforeStored},
+    after:{waitUntil:waitStr,stored:JSON.stringify(data)}
+  });
+
   if(nextContact){idx=contacts.indexOf(nextContact);saveC();}
   else if(ci>0){idx=contacts.indexOf(activePl[ci-1]);saveC();}
   renderAll();startTick();toast(`⏱ ${label} — timer set`);
 }
 
-function showUndo(msg){const b=$("undo-bar");$("undo-msg").textContent=msg;b.classList.add("show");setTimeout(()=>b.classList.remove("show"),8000);}
+// showUndo is now a no-op — we removed the popup undo bar in favor of the History panel
+function showUndo(){}
 
 function startAutoRefresh(){if(_autoRefTimer)clearInterval(_autoRefTimer);_autoRefTimer=setInterval(()=>syncNow(false,true),90000);}
 
@@ -2412,16 +2705,24 @@ function setReminder(row,ms,specificTime){
   }
   // due=0 means "note only, no timer"
   const due=(ms===0&&!specificTime)?0:(specificTime||Date.now()+ms);
-  localStorage.setItem(REM_KEY(row),JSON.stringify({due:due||Date.now(),label,fired:due===0||due<=Date.now()}));
+  const c=contacts.find(x=>x.row===row);
+  const beforeRem=c?(c.reminder||""):"";
+  const beforeStored=localStorage.getItem(REM_KEY(row))||"";
+  const newStored=JSON.stringify({due:due||Date.now(),label,fired:due===0||due<=Date.now()});
+  localStorage.setItem(REM_KEY(row),newStored);
   const dueDate=due?new Date(due):new Date();
   const dueStr=dueDate.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})+" at "+dueDate.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
   const remStr="["+label+"] due "+dueStr;
-  const c=contacts.find(x=>x.row===row);
   if(c){c.reminder=remStr;saveC();}
   const s=currentSheet();
   fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
     body:JSON.stringify({action:"updateCell",sheet:s.tab,row,field:"reminder",value:remStr})});
   document.getElementById("cb-ov").style.display="none";
+  if(c)logChange("reminder",c,"Reminder set: "+label,{
+    kind:"reminder",
+    before:{reminder:beforeRem,stored:beforeStored},
+    after:{reminder:remStr,stored:newStored}
+  });
   renderAll();
   toast("🔔 Reminder set — "+label);
 }
@@ -2435,8 +2736,17 @@ function setReminderCustom(row){
 }
 
 function clearReminder(row){
-  localStorage.removeItem(REM_KEY(row));
   const c=contacts.find(x=>x.row===row);
+  const beforeRem=c?(c.reminder||""):"";
+  const beforeStored=localStorage.getItem(REM_KEY(row))||"";
+  if(c&&beforeRem){
+    logChange("reminder",c,"Reminder dismissed",{
+      kind:"reminder",
+      before:{reminder:beforeRem,stored:beforeStored},
+      after:{reminder:"",stored:""}
+    });
+  }
+  localStorage.removeItem(REM_KEY(row));
   if(c){c.reminder="";saveC();}
   const s=currentSheet();
   fetch(s.url||SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
