@@ -197,7 +197,7 @@ button,input,textarea{font-family:inherit;border:none;outline:none;cursor:pointe
 .add-note-btn{font-size:12px;font-weight:700;color:var(--gold);background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.25);border-radius:8px;padding:5px 12px;touch-action:manipulation}
 .ie-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
 .ie-full{grid-column:1/-1}
-.c-list{display:flex;flex-direction:column;padding:8px 12px;gap:6px}
+.c-list{display:flex;flex-direction:column;padding:8px 12px 340px;gap:6px}
 .c-item{background:rgba(255,255,255,.04);border:1px solid rgba(124,58,237,.15);border-radius:14px;overflow:hidden;touch-action:manipulation;transition:background .12s;margin-bottom:8px;cursor:pointer;-webkit-tap-highlight-color:rgba(124,58,237,.1)}
 .c-item:active{background:rgba(124,58,237,.08)}
 .c-item:active{background:rgba(124,58,237,.1)}
@@ -418,8 +418,8 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
 <div id="cb-ov" onclick="if(event.target===this)this.style.display='none'"></div>
 <!-- ALL LEADS -->
 <div class="ov" id="all-ov" onclick="if(event.target===this)closeAll()">
-  <div class="sheet" style="height:100dvh;max-height:100dvh;display:flex;flex-direction:column">
-    <div class="all-sheet-head" style="flex-shrink:0">
+  <div class="sheet" style="max-height:94vh">
+    <div class="all-sheet-head">
       <div class="sheet-head" style="position:relative;padding:10px 0 12px">
         <div><div class="sheet-title">All Leads</div><div class="sheet-subtitle" id="sh-count"></div></div>
         <div style="display:flex;gap:8px;align-items:center">
@@ -433,7 +433,7 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
       </div>
       <div id="status-filter-bar" style="display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
     </div>
-    <div class="c-list" id="c-list" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0"></div>
+    <div class="c-list" id="c-list"></div>
   </div>
 </div>
 <!-- SMS TEMPLATE PICKER -->
@@ -630,15 +630,7 @@ function clearHistory(){localStorage.removeItem(HIST_KEY());closeHistory();toast
 
 function clearHoldSync(){clearTimeout(_holdTimer);_holdTimer=null;}
 
-function closeAll(){
-  const ov=$("all-ov");
-  ov.classList.remove("open");
-  // Reset the dynamically-set list height so next open recalculates
-  const list=document.getElementById("c-list");
-  if(list){list.style.maxHeight="";list.style.height="";}
-  const sheet=ov.querySelector(".sheet");
-  if(sheet){sheet.style.maxHeight="";sheet.style.height="";}
-}
+function closeAll(){$("all-ov").classList.remove("open");}
 
 function closeEdit(){
   if(editIdx!==null){
@@ -1283,53 +1275,11 @@ function openAll(){
   filterList("");
   $("all-ov").classList.add("open");
   // Auto-focus search box so keyboard opens immediately. iOS Safari requires
-  // .focus() to fire synchronously within the user-gesture stack, so we do it
-  // here directly (not via setTimeout).
+  // .focus() to fire synchronously within the user-gesture stack.
   const sb=$("search-box");
   if(sb){
     sb.value="";
     sb.focus();
-  }
-  // Resize the sheet to fit above the keyboard. iOS doesn't shrink fixed elements
-  // when the keyboard opens, so we listen to visualViewport changes and set
-  // max-height to the actual visible area. This keeps every search result tappable
-  // even with the keyboard still up.
-  startKeyboardResize();
-}
-
-let _keyboardResizeBound=false;
-function startKeyboardResize(){
-  if(!window.visualViewport)return;
-  const apply=function(){
-    const ov=document.getElementById("all-ov");
-    if(!ov||!ov.classList.contains("open"))return;
-    const list=document.getElementById("c-list");
-    const headEl=ov.querySelector(".all-sheet-head");
-    if(!list)return;
-    // Visual viewport top = where the visible area starts (still 0 even with kb up)
-    // Visual viewport height = visible area excluding the keyboard
-    const vvH=window.visualViewport.height;
-    // Find where the search header ends — the list starts right below it
-    let listTop=0;
-    if(list){
-      const r=list.getBoundingClientRect();
-      listTop=r.top;
-    }
-    // Available height = visible viewport height - where list starts on screen
-    // Subtract a small buffer so the last row isn't flush against keyboard
-    const avail=Math.max(140, vvH - listTop - 8);
-    list.style.maxHeight=avail+"px";
-    list.style.height=avail+"px";
-    list.style.overflowY="auto";
-    list.style.webkitOverflowScrolling="touch";
-  };
-  // Run twice — once now, once after keyboard animates in
-  apply();
-  setTimeout(apply,250);
-  if(!_keyboardResizeBound){
-    window.visualViewport.addEventListener("resize",apply);
-    window.visualViewport.addEventListener("scroll",apply);
-    _keyboardResizeBound=true;
   }
 }
 
