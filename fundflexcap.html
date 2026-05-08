@@ -418,8 +418,8 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
 <div id="cb-ov" onclick="if(event.target===this)this.style.display='none'"></div>
 <!-- ALL LEADS -->
 <div class="ov" id="all-ov" onclick="if(event.target===this)closeAll()">
-  <div class="sheet" style="max-height:94vh">
-    <div class="all-sheet-head">
+  <div class="sheet" style="height:100dvh;max-height:100dvh;display:flex;flex-direction:column">
+    <div class="all-sheet-head" style="flex-shrink:0">
       <div class="sheet-head" style="position:relative;padding:10px 0 12px">
         <div><div class="sheet-title">All Leads</div><div class="sheet-subtitle" id="sh-count"></div></div>
         <div style="display:flex;gap:8px;align-items:center">
@@ -433,7 +433,7 @@ if(activeSheet>=SHEETS.length)activeSheet=0;
       </div>
       <div id="status-filter-bar" style="display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
     </div>
-    <div class="c-list" id="c-list"></div>
+    <div class="c-list" id="c-list" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0"></div>
   </div>
 </div>
 <!-- SMS TEMPLATE PICKER -->
@@ -633,7 +633,9 @@ function clearHoldSync(){clearTimeout(_holdTimer);_holdTimer=null;}
 function closeAll(){
   const ov=$("all-ov");
   ov.classList.remove("open");
-  // Reset the dynamically-set height so next open gets fresh layout
+  // Reset the dynamically-set list height so next open recalculates
+  const list=document.getElementById("c-list");
+  if(list){list.style.maxHeight="";list.style.height="";}
   const sheet=ov.querySelector(".sheet");
   if(sheet){sheet.style.maxHeight="";sheet.style.height="";}
 }
@@ -1301,13 +1303,29 @@ function startKeyboardResize(){
   const apply=function(){
     const ov=document.getElementById("all-ov");
     if(!ov||!ov.classList.contains("open"))return;
-    const sheet=ov.querySelector(".sheet");
-    if(!sheet)return;
-    // Use the visual viewport's actual height — iOS subtracts the keyboard from this
-    sheet.style.maxHeight=window.visualViewport.height+"px";
-    sheet.style.height=window.visualViewport.height+"px";
+    const list=document.getElementById("c-list");
+    const headEl=ov.querySelector(".all-sheet-head");
+    if(!list)return;
+    // Visual viewport top = where the visible area starts (still 0 even with kb up)
+    // Visual viewport height = visible area excluding the keyboard
+    const vvH=window.visualViewport.height;
+    // Find where the search header ends — the list starts right below it
+    let listTop=0;
+    if(list){
+      const r=list.getBoundingClientRect();
+      listTop=r.top;
+    }
+    // Available height = visible viewport height - where list starts on screen
+    // Subtract a small buffer so the last row isn't flush against keyboard
+    const avail=Math.max(140, vvH - listTop - 8);
+    list.style.maxHeight=avail+"px";
+    list.style.height=avail+"px";
+    list.style.overflowY="auto";
+    list.style.webkitOverflowScrolling="touch";
   };
+  // Run twice — once now, once after keyboard animates in
   apply();
+  setTimeout(apply,250);
   if(!_keyboardResizeBound){
     window.visualViewport.addEventListener("resize",apply);
     window.visualViewport.addEventListener("scroll",apply);
