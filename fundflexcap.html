@@ -491,6 +491,7 @@ function $(id){return document.getElementById(id);}
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let contacts=[],idx=0,pipeline='active',undoSnapshot=null;
+let _viewDwellTimer=null;
 
 let _lastPickTime=0,_deleteUndo=null,_deleteTimer=null;
 let _autoRefTimer=null,_tick=null;
@@ -537,12 +538,14 @@ function buildCbHtml(c){
   const{due,label}=JSON.parse(stored);
   if(due-Date.now()<-30000){clearCb(c.row);return`<button onclick="openCallbackPicker(${c.row})" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(240,68,68,.05);border:1px solid rgba(240,68,68,.2);color:rgba(248,113,113,.78);font-weight:700;white-space:nowrap;touch-action:manipulation">⏸ Wait timer</button>`;}
   const diff=due-Date.now();
-  const borderColor=diff<3600000?"rgba(245,158,11,.5)":"rgba(0,194,122,.5)";
-  const bgColor=diff<3600000?"rgba(245,158,11,.1)":"rgba(0,194,122,.1)";
-  const textColor=diff<3600000?"#f59e0b":"#34d399";
+  // Always red — matches "DO NOT CALL" banner. Intensity scales: brighter/pulsing under 1h, softer otherwise.
+  const urgent=diff<3600000;
+  const borderColor=urgent?"rgba(240,68,68,.55)":"rgba(240,68,68,.32)";
+  const bgColor=urgent?"rgba(240,68,68,.14)":"rgba(240,68,68,.07)";
+  const textColor=urgent?"#fca5a5":"rgba(252,165,165,.85)";
   return`<span style="display:inline-flex;align-items:center;border-radius:20px;overflow:hidden;border:1.5px solid ${borderColor};background:${bgColor}">
     <span class="cb-pill" id="cd_${c.row}" onclick="openCallbackPicker(${c.row})" style="border:none;padding:5px 10px 5px 12px;color:${textColor};font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap">⏱ ${label} — ${fmtCountdown(due,"").replace(/^⏱\s*—?\s*/,"")}</span>
-    <button onclick="event.stopPropagation();clearCb(${c.row})" style="padding:0 10px;background:rgba(255,255,255,.07);border:none;border-left:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.45);font-size:14px;font-weight:700;height:100%;touch-action:manipulation;align-self:stretch;display:flex;align-items:center">✕</button>
+    <button onclick="event.stopPropagation();clearCb(${c.row})" style="padding:0 10px;background:rgba(240,68,68,.08);border:none;border-left:1px solid rgba(240,68,68,.2);color:rgba(252,165,165,.6);font-size:14px;font-weight:700;height:100%;touch-action:manipulation;align-self:stretch;display:flex;align-items:center">✕</button>
   </span>`;
 }
 
@@ -1164,6 +1167,8 @@ function pushHistory(type, contact, detail, revertData){
 // We keep its remote-logging behavior (so the master log sheet still gets entries),
 // and route to pushHistory if revertData is supplied.
 function logChange(type,contact,detail,revertData){
+  // Track engagement — any edit/mutation counts as actively working this lead
+  if(contact&&contact.row)markTouched(contact.row);
   // Local session entry (revertable if revertData provided)
   pushHistory(type,contact,detail,revertData);
   // Remote master log (existing behavior — fire-and-forget)
@@ -1295,13 +1300,20 @@ function openCallbackPicker(row){
     {l:"45 min",ms:2700000},{l:"1 hour",ms:3600000},{l:"2 hours",ms:7200000},{l:"3 hours",ms:10800000},
     {l:"4 hours",ms:14400000},{l:"Tomorrow",ms:86400000},{l:"2 days",ms:172800000},{l:"Next week",ms:604800000},
   ];
+  // Working selection state — neither chip nor custom time fires the timer.
+  // Confirm button in header is the only commit point.
+  _cbPendingRow=row;
+  _cbPendingMs=cur?cur.ms:null;
+  _cbPendingCustom=null; // ms timestamp for custom datetime, mutually exclusive with _cbPendingMs
+
   const removeBlock=cur
     ? `<button onclick="clearCb(${row});document.getElementById('cb-ov').style.display='none'" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid rgba(240,68,68,.3);color:#f87171;font-size:14px;font-weight:700;background:rgba(240,68,68,.06)">✕ Remove timer</button>`
     : "";
   ov.innerHTML=`<div style="width:100%;background:linear-gradient(180deg,#1a1040,#130e2e);border-radius:24px 24px 0 0;border-top:1px solid rgba(245,158,11,.4);padding:0 0 50px;max-height:92vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.16,1,.3,1) both">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;border-bottom:1px solid rgba(45,37,80,.5)">
-      <div style="font-size:18px;font-weight:900;color:#fff">⏱ Set Wait Timer</div>
-      <button onclick="document.getElementById('cb-ov').style.display='none'" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center">✕</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;border-bottom:1px solid rgba(45,37,80,.5);gap:10px">
+      <div style="font-size:17px;font-weight:900;color:#fff;flex:1;min-width:0">⏱ Set Wait Timer</div>
+      <button id="cb-confirm-btn" onclick="cbConfirm()" disabled style="padding:8px 16px;border-radius:10px;background:rgba(245,158,11,.12);border:1.5px solid rgba(245,158,11,.25);color:rgba(245,158,11,.45);font-size:13px;font-weight:800;touch-action:manipulation;white-space:nowrap;opacity:.6">Confirm</button>
+      <button onclick="document.getElementById('cb-ov').style.display='none'" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
     </div>
     <div style="padding:16px 16px 0">
       <input id="cb-label" value="${cur&&cur.label?cur.label:""}" placeholder="Note (optional) — tap return when done"
@@ -1309,20 +1321,88 @@ function openCallbackPicker(row){
         style="width:100%;padding:14px;background:rgba(255,255,255,.07);border:2px solid rgba(245,158,11,.35);border-radius:14px;color:#fff;font-size:15px;font-weight:600;box-sizing:border-box;margin-bottom:16px;outline:none"
         onfocus="this.style.borderColor='#f59e0b'" onblur="this.style.borderColor='rgba(245,158,11,.35)'"
         onkeydown="if(event.key==='Enter'){this.blur();}"/>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        ${opts.map(o=>{const sel=cur&&cur.ms===o.ms;return`<button onclick="setCb(${row},${o.ms})" style="padding:13px 6px;border-radius:12px;font-size:13px;font-weight:700;background:${sel?"linear-gradient(135deg,#7c3aed,#c9a227)":"rgba(255,255,255,.05)"};border:1.5px solid ${sel?"transparent":"rgba(45,37,80,.8)"};color:${sel?"#fff":"rgba(255,255,255,.8)"};touch-action:manipulation">${sel?"✓ ":""}${o.l}</button>`;}).join("")}
+      <div id="cb-chip-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        ${opts.map(o=>`<button data-ms="${o.ms}" onclick="cbPickPreset(${o.ms})" style="padding:13px 6px;border-radius:12px;font-size:13px;font-weight:700;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);color:rgba(255,255,255,.8);touch-action:manipulation">${o.l}</button>`).join("")}
       </div>
       <div style="display:flex;gap:8px;margin-bottom:16px">
-        <input type="datetime-local" id="cb-datetime" value="${dtDefault}" style="flex:1;padding:12px 14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:12px;color:var(--text);font-size:13px;color-scheme:dark"/>
-        <button onclick="setCustomTime(${row})" style="padding:12px 16px;border-radius:12px;background:rgba(245,158,11,.15);border:1.5px solid rgba(245,158,11,.4);color:#f59e0b;font-size:14px;font-weight:700;touch-action:manipulation;white-space:nowrap">Set time</button>
+        <input type="datetime-local" id="cb-datetime" value="${dtDefault}" oninput="cbPickCustom()" style="flex:1;padding:12px 14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(45,37,80,.8);border-radius:12px;color:var(--text);font-size:13px;color-scheme:dark"/>
+        <button onclick="cbPickCustom()" style="padding:12px 16px;border-radius:12px;background:rgba(245,158,11,.08);border:1.5px solid rgba(245,158,11,.25);color:rgba(245,158,11,.7);font-size:13px;font-weight:700;touch-action:manipulation;white-space:nowrap">Use time</button>
       </div>
       ${removeBlock}
     </div>
   </div>`;
   ov.style.display="flex";
+  // If a saved preset is pre-selected, highlight it visually
+  if(_cbPendingMs!==null)cbRefreshChipStyles();
   // Synchronous focus inside the gesture stack — required for iOS keyboard
   const inp=document.getElementById("cb-label");
   if(inp)inp.focus();
+}
+
+// Working selection state for the wait picker (commit happens only via Confirm)
+let _cbPendingRow=null;
+let _cbPendingMs=null;        // selected preset duration in ms
+let _cbPendingCustom=null;    // selected custom datetime in ms epoch (mutually exclusive)
+
+function cbPickPreset(ms){
+  _cbPendingMs=ms;
+  _cbPendingCustom=null;
+  cbRefreshChipStyles();
+  cbEnableConfirm();
+}
+
+function cbPickCustom(){
+  const dtEl=document.getElementById("cb-datetime");
+  if(!dtEl||!dtEl.value)return;
+  const t=new Date(dtEl.value).getTime();
+  if(!t||t<=Date.now()){toast("Pick a future time");return;}
+  _cbPendingCustom=t;
+  _cbPendingMs=null;
+  cbRefreshChipStyles();
+  cbEnableConfirm();
+}
+
+function cbRefreshChipStyles(){
+  const grid=document.getElementById("cb-chip-grid");
+  if(!grid)return;
+  grid.querySelectorAll("button[data-ms]").forEach(function(btn){
+    const ms=parseInt(btn.dataset.ms);
+    const sel=(_cbPendingMs===ms);
+    if(sel){
+      btn.style.background="linear-gradient(135deg,#7c3aed,#c9a227)";
+      btn.style.borderColor="transparent";
+      btn.style.color="#fff";
+      if(!btn.textContent.startsWith("✓ "))btn.textContent="✓ "+btn.textContent;
+    } else {
+      btn.style.background="rgba(255,255,255,.05)";
+      btn.style.borderColor="rgba(45,37,80,.8)";
+      btn.style.color="rgba(255,255,255,.8)";
+      if(btn.textContent.startsWith("✓ "))btn.textContent=btn.textContent.slice(2);
+    }
+  });
+}
+
+function cbEnableConfirm(){
+  const btn=document.getElementById("cb-confirm-btn");
+  if(!btn)return;
+  btn.disabled=false;
+  btn.style.background="linear-gradient(135deg,#7c3aed,#c9a227)";
+  btn.style.borderColor="transparent";
+  btn.style.color="#fff";
+  btn.style.opacity="1";
+}
+
+function cbConfirm(){
+  if(_cbPendingRow===null)return;
+  if(_cbPendingCustom){
+    setCb(_cbPendingRow,0,_cbPendingCustom);
+  } else if(_cbPendingMs){
+    setCb(_cbPendingRow,_cbPendingMs);
+  } else {
+    toast("Pick a duration first");
+    return;
+  }
+  _cbPendingRow=null;_cbPendingMs=null;_cbPendingCustom=null;
 }
 
 function setCustomTime(row){
@@ -1539,6 +1619,17 @@ function renderAll(){renderCard();if($("search-box"))filterList($("search-box").
 function renderCard(){
   const wrap=$("lead-card");if(!wrap)return;
   if(!contacts.length){wrap.innerHTML='<div class="empty"><span class="empty-icon">📋</span>No leads loaded.<br>Tap ↻ to sync.</div>';return;}
+  // View-dwell tracking: if the user stays on this lead for ~1.5s, mark it as touched.
+  // Skip if waiting (we're just observing wait pipeline) or if this is the active lead being processed.
+  if(_viewDwellTimer){clearTimeout(_viewDwellTimer);_viewDwellTimer=null;}
+  const _currentLead=contacts[idx];
+  if(_currentLead&&pipeline==="active"&&!isWaiting(_currentLead)){
+    _viewDwellTimer=setTimeout(function(){
+      if(contacts[idx]&&contacts[idx].row===_currentLead.row){
+        markTouched(_currentLead.row);
+      }
+    },1500);
+  }
   try{
   const c=contacts[idx];const col=avColor(idx);const ph=c.phone?c.phone.replace(/\D/g,""):null;
   const ss=statusStyle(c.leadStatus);
@@ -1565,7 +1656,7 @@ function renderCard(){
   const headerBg=ss?"background:linear-gradient(160deg,"+ss.bg.replace(/,[\d.]+\)$/,",0.35)")+" 0%,"+ss.bg.replace(/,[\d.]+\)$/,",0.08)")+" 55%,rgba(15,12,35,.95) 100%)":"";
   const avatarBg=ss?"linear-gradient(135deg,"+ss.color+","+ss.bg.replace(/,[\d.]+\)$/,",0.6)")+")":`linear-gradient(135deg,${col},${col}88)`;
   // Pre-compute all conditional HTML to avoid nested backtick issues on Safari/iOS
-  const htmlPhone=ph?('<a class="lead-phone" href="tel:'+ph+'"><span class="lead-phone-dot"></span>'+fmtPhone(c.phone)+'</a>'):'<span class="lead-phone" style="color:rgba(255,255,255,.25)">No phone</span>';
+  const htmlPhone=ph?('<a class="lead-phone" href="tel:'+ph+'" onclick="markTouched('+c.row+')"><span class="lead-phone-dot"></span>'+fmtPhone(c.phone)+'</a>'):'<span class="lead-phone" style="color:rgba(255,255,255,.25)">No phone</span>';
   const htmlEmail=c.email?('<a class="lead-email" href="mailto:'+c.email+'"><span style="opacity:.5;font-size:10px">✉</span>'+c.email+'</a>'):'';
   // Score block — always visible. Full gold when present, muted gray when missing.
   // Tap to edit inline.
@@ -1710,7 +1801,7 @@ function renderCard(){
       +'</div>'
     +'</div>'
     +'<div class="cta-row" style="'+(isOnWait?'opacity:.25;pointer-events:none':'')+'">'
-      +'<a class="btn-call'+(ph?"":" off")+'" href="'+(ph?"tel:"+ph:"#")+'">📞 Call</a>'
+      +'<a class="btn-call'+(ph?"":" off")+'" href="'+(ph?"tel:"+ph:"#")+'" onclick="markTouched('+c.row+')">📞 Call</a>'
       +htmlSmsBtn
     +'</div>'
     +'<div class="notes-section" id="notes-tap" style="'+(isOnWait?'opacity:.5':'')+'">'
@@ -1922,11 +2013,6 @@ function setCb(row,ms,specificTime){
   const labelEl=$("cb-label");
   const label=(labelEl?labelEl.value.trim():"")||"Wait";
 
-  // Find the NEXT active lead BEFORE we mark this one as waiting
-  const activePl=contacts.filter(function(ct){return !isWaiting(ct);});
-  const ci=activePl.findIndex(function(ct){return ct.row===row;});
-  const nextContact=ci>=0&&ci<activePl.length-1?activePl[ci+1]:null;
-
   const due=specificTime||Date.now()+ms;
   const data={due,label,ms:ms||0,setAt:Date.now()};
   const c=contacts.find(x=>x.row===row);
@@ -1950,8 +2036,11 @@ function setCb(row,ms,specificTime){
     after:{waitUntil:waitStr,stored:JSON.stringify(data)}
   });
 
-  if(nextContact){idx=contacts.indexOf(nextContact);saveC();}
-  else if(ci>0){idx=contacts.indexOf(activePl[ci-1]);saveC();}
+  // Stay on this lead. It's now waiting, so switch the pipeline view to "wait"
+  // and keep the cursor on this specific contact so it remains visible.
+  pipeline="wait";
+  const leadIdx=contacts.indexOf(c);
+  if(leadIdx>=0){idx=leadIdx;saveC();}
   renderAll();startTick();toast(`⏱ ${label} — timer set`);
 }
 
@@ -2314,14 +2403,44 @@ function syncStatusesFromContacts(){
   });
 }
 
+// ── LAST-TOUCHED TRACKING ────────────────────────────────────────────────────
+// Tracks which lead the user was last actively engaging with (call, text, edit,
+// status change, or even just viewed for ~1.5s). When returning to the active
+// pipeline (e.g. after setting a wait timer and tapping ← Active), we land on
+// the lead immediately AFTER the last-touched one — so the call-down-the-list
+// flow continues seamlessly instead of jumping back to lead #1.
+function LAST_TOUCHED_KEY(){return"ffc_last_touched_"+currentSheet().cache;}
+
+function markTouched(row){
+  if(!row)return;
+  try{localStorage.setItem(LAST_TOUCHED_KEY(),String(row));}catch{}
+}
+
+function getLastTouchedRow(){
+  try{return parseInt(localStorage.getItem(LAST_TOUCHED_KEY())||"0")||null;}catch{return null;}
+}
+
 function positionOnFirstActive(){
-  // Always skip waiting leads when entering the active pipeline
+  // Try to resume from where the user left off in the active list.
+  // 1. Find the last-touched lead's position in the FULL contacts array
+  // 2. Walk forward from there and land on the first active (non-waiting) lead
+  // 3. Fall back to lead #1 if nothing found
   const active=contacts.filter(function(ct){return !isWaiting(ct);});
-  if(active.length>0){
-    idx=contacts.indexOf(active[0]);
-  } else {
-    idx=0;
+  if(!active.length){idx=0;return;}
+  const lastRow=getLastTouchedRow();
+  if(lastRow){
+    const lastIdx=contacts.findIndex(function(ct){return ct.row===lastRow;});
+    if(lastIdx>=0){
+      // Walk forward from the lead AFTER the last-touched one
+      for(let i=lastIdx+1;i<contacts.length;i++){
+        if(!isWaiting(contacts[i])){idx=i;return;}
+      }
+      // If last-touched was at the end and is itself still active, stay on it
+      if(!isWaiting(contacts[lastIdx])){idx=lastIdx;return;}
+      // Otherwise wrap to first active
+    }
   }
+  idx=contacts.indexOf(active[0]);
 }
 
 function updateNavCount(){
@@ -3155,6 +3274,8 @@ function smsNav(level,key){
 
 function openSMSPicker(ri){
   _smsIdx=ri;
+  // Track engagement: opening SMS picker counts as actively working this lead
+  if(contacts[ri])markTouched(contacts[ri].row);
   // Reset AI drafts UI from any previous lead
   var aiCards=document.getElementById("ai-sms-cards");
   if(aiCards){aiCards.innerHTML="";aiCards.style.display="none";}
