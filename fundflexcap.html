@@ -2643,13 +2643,15 @@ function clearPipelineFilter(){
 
 function switchPipeline(p){
   if(p==='active'){
-    // Going back to active — stay on current card, just change pipeline
     pipeline=p;
-    // If current idx is in the active pool, stay there
-    // If not (e.g. was in wait-only lead), go to first active
+    // If the current card is still in active, stay on it
     const active=getPipeline();
     const currentInActive=active.some(function(ct){return ct===contacts[idx];});
-    if(!currentInActive&&active.length>0){idx=contacts.indexOf(active[0]);}
+    if(!currentInActive&&active.length>0){
+      // Otherwise resume from where we left off — walks forward from the
+      // last-touched/edited/viewed lead and lands on the next non-waiting one
+      positionOnFirstActive();
+    }
   } else {
     // Entering wait or reminder view — jump to first in that section
     pipeline=p;
