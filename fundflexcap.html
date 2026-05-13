@@ -2231,7 +2231,9 @@ async function syncNow(goFirst=false,silent=false,expectedSheet){
     const prevName=contacts[idx]?.name;
     contacts=data;
     if(goFirst){
-      positionOnFirstActive();
+      // Explicit "go to first" — clear the last-touched marker so we land on #1
+      try{localStorage.removeItem(LAST_TOUCHED_KEY());}catch{}
+      positionOnFirstActive(true);
     } else if(prevPhone){
       const ni=contacts.findIndex(c=>c.phone===prevPhone);
       if(ni!==-1)idx=ni;
@@ -2420,13 +2422,17 @@ function getLastTouchedRow(){
   try{return parseInt(localStorage.getItem(LAST_TOUCHED_KEY())||"0")||null;}catch{return null;}
 }
 
-function positionOnFirstActive(){
-  // Try to resume from where the user left off in the active list.
-  // 1. Find the last-touched lead's position in the FULL contacts array
-  // 2. Walk forward from there and land on the first active (non-waiting) lead
-  // 3. Fall back to lead #1 if nothing found
+function positionOnFirstActive(forceFirst){
+  // Always skip waiting leads when entering the active pipeline.
+  // If forceFirst=true, go straight to the first active lead (no resume logic).
+  // Otherwise, try to resume from the last-touched lead.
   const active=contacts.filter(function(ct){return !isWaiting(ct);});
   if(!active.length){idx=0;return;}
+  if(forceFirst){
+    idx=contacts.indexOf(active[0]);
+    return;
+  }
+  // Smart resume: walk forward from the last-touched lead
   const lastRow=getLastTouchedRow();
   if(lastRow){
     const lastIdx=contacts.findIndex(function(ct){return ct.row===lastRow;});
@@ -2437,7 +2443,7 @@ function positionOnFirstActive(){
       }
       // If last-touched was at the end and is itself still active, stay on it
       if(!isWaiting(contacts[lastIdx])){idx=lastIdx;return;}
-      // Otherwise wrap to first active
+      // Otherwise fall through to first active
     }
   }
   idx=contacts.indexOf(active[0]);
