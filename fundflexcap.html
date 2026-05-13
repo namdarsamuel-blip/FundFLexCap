@@ -1592,6 +1592,28 @@ function renderCard(){
     const d=Math.floor(h/24);
     return d+"d "+(h%24)+"h ago";
   })();
+  // For wait-expired reminders, also format original duration + when it was set
+  const remWaitMs=remFromWait?(remData.waitMs||0):0;
+  const remWaitSetAt=remFromWait?(remData.waitSetAt||0):0;
+  const remWaitDurText=(function(){
+    if(!remFromWait||!remWaitMs)return"";
+    const totalMin=Math.round(remWaitMs/60000);
+    if(totalMin<60)return totalMin+" min";
+    const totalH=Math.round(remWaitMs/3600000);
+    if(totalH<24)return totalH+"h";
+    const days=Math.round(remWaitMs/86400000);
+    if(days<7)return days+"d";
+    const weeks=Math.round(days/7);
+    return weeks+"w";
+  })();
+  const remWaitSetText=(function(){
+    if(!remFromWait||!remWaitSetAt)return"";
+    const d=new Date(remWaitSetAt);
+    const now=new Date();
+    const sameDay=d.toDateString()===now.toDateString();
+    if(sameDay)return d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+    return d.toLocaleDateString("en-US",{month:"short",day:"numeric"})+" "+d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+  })();
   // Kicker line: "REMINDER · DUE NOW" or "REMINDER · Wait ended 12m ago" or just "REMINDER"
   const remKicker=remFromWait
     ? "Reminder · Wait ended "+remAgoText
@@ -1626,6 +1648,15 @@ function renderCard(){
           )+
           // SUBLINE: the actual note / context
           '<span style="font-size:12px;font-weight:700;color:rgba(251,191,36,'+(remHeadline?'.78':'.95')+');white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3">'+remSubline+'</span>'+
+          // METADATA LINE: original wait duration + when set (only for wait-expired)
+          (remFromWait&&(remWaitDurText||remWaitSetText)
+            ? '<span style="font-size:10px;font-weight:600;color:rgba(251,191,36,.5);line-height:1.3;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+              +(remWaitDurText?'⏱ '+remWaitDurText+' wait':'')
+              +(remWaitDurText&&remWaitSetText?' · ':'')
+              +(remWaitSetText?'set '+remWaitSetText:'')
+              +'</span>'
+            : ''
+          )+
         '</div>'+
       '</div>'+
       '<button onclick="event.stopPropagation();clearReminder('+c.row+')" style="padding:6px 12px;border-radius:8px;background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.4);color:#fcd34d;font-size:11px;font-weight:800;flex-shrink:0;touch-action:manipulation;line-height:1">✕ Dismiss</button>'+
@@ -1897,7 +1928,7 @@ function setCb(row,ms,specificTime){
   const nextContact=ci>=0&&ci<activePl.length-1?activePl[ci+1]:null;
 
   const due=specificTime||Date.now()+ms;
-  const data={due,label,ms:ms||0};
+  const data={due,label,ms:ms||0,setAt:Date.now()};
   const c=contacts.find(x=>x.row===row);
   const beforeWait=c?(c.waitUntil||""):"";
   const beforeStored=localStorage.getItem(CB_KEY(row))||"";
@@ -1944,7 +1975,7 @@ function startTick(){
       const el=document.getElementById("cd_"+ct.row);
       const s=localStorage.getItem(CB_KEY(ct.row));
       if(s){
-        const{due,label}=JSON.parse(s);
+        const{due,label,ms:waitMs,setAt:waitSetAt}=JSON.parse(s);
         const diff=due-Date.now();
         if(el){
           el.textContent=fmtCountdown(due,label);
@@ -1961,6 +1992,8 @@ function startTick(){
           // Capture original wait info BEFORE we clear it
           const expiredLabel=label||"Wait";
           const expiredAt=due; // ms timestamp when timer hit zero
+          const origMs=waitMs||0;
+          const origSetAt=waitSetAt||(due-origMs);
           localStorage.removeItem(CB_KEY(ct.row));
           const c=contacts.find(x=>x.row===ct.row);
           if(c){c.waitUntil="";}
@@ -1975,8 +2008,11 @@ function startTick(){
             const remLabel=expiredLabel&&expiredLabel!=="Wait"
               ? "Wait expired: "+expiredLabel
               : "Wait expired — ready to call";
-            // Store expiredAt so the pill can show "ended Xm ago"
-            localStorage.setItem(REM_KEY(ct.row),JSON.stringify({due:expiredAt,label:remLabel,fired:true,fromWait:true,expiredAt:expiredAt}));
+            // Store expiredAt + duration metadata so the pill can show full context
+            localStorage.setItem(REM_KEY(ct.row),JSON.stringify({
+              due:expiredAt,label:remLabel,fired:true,fromWait:true,
+              expiredAt:expiredAt,waitMs:origMs,waitSetAt:origSetAt,waitLabel:expiredLabel
+            }));
             if(c){
               const expiredDate=new Date(expiredAt);
               const dStr=expiredDate.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})+" at "+expiredDate.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
